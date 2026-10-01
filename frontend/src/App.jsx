@@ -1,9 +1,10 @@
-import { Routes, Route } from 'react-router-dm'
+import { Routes, Route } from 'react-router-dom'
 import Layout from '../src/components/Layout.jsx'
 import Dashboard from '../src/pages/Dashboard.jsx'
 import Topsis from '../src/pages/Topsis.jsx'
 import Resultado from '../src/pages/Resultado.jsx'
-import Cadastro from '../src/pages/Mapa.jsx'
+import Cadastro from '../src/pages/Cadastro.jsx'
+import Mapa from '../src/pages/Mapa.jsx'
 
 export default function App() {
   return (

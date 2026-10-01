@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useApp } from "../hooks/useApp.jsx"
 import Card from '../components/Card.jsx'
 import Field from '../components/Field.jsx'
-import Buttom from '../components/Button.jsx'
+import Button from '../components/Button.jsx'
 import { buscarCep } from '../services/api.js'
 
 const vazio = {nome: '', uf: '', ibge: '', cep: '' }
@@ -12,11 +12,30 @@ export default function Cadastro(){
     const [f, setF] = useState(vazio)
     const [erros, setErros] = useState({})
     const set = (k) => (e) => setF({...f, [k]: e.target.value })
-    const cep = async () => {
-        if (!f.cep) return
-        try { setF({ ...f, ...(await buscarCep(f.cep)) }); setErros({ ...erros, cep: '' }) }
-        catch (e) {setErros({...erros, cep: e.message}) }
-    }
+    const cep = async (valor) => {
+  const numero = valor.replace(/\D/g, '')
+
+  if (numero.length !== 8) return
+
+  try {
+    const dados = await buscarCep(numero)
+
+    setF((atual) => ({
+      ...atual,
+      ...dados
+    }))
+
+    setErros((atual) => ({
+      ...atual,
+      cep: ''
+    }))
+  } catch (e) {
+    setErros((atual) => ({
+      ...atual,
+      cep: e.message
+    }))
+  }
+}
     
     const salvar = (e) => {
         e.preventDefault()
@@ -37,7 +56,22 @@ export default function Cadastro(){
             <header className="head"><div><h1>Cadastro de municípios</h1><p>Busque por CEP ou informe o código IBGE</p></div></header>
               <Card>
                 <form className="form" onSubmit={salvar} noValidate>
-                  <Field rotulo="CEP" value={f.cep} onChange={set('cep')} onBlur={cep} erro={erros.cep} placeholder="40020-000" />
+                  <Field
+  rotulo="CEP"
+  value={f.cep}
+  onChange={(e) => {
+    const valor = e.target.value
+
+    setF((atual) => ({
+      ...atual,
+      cep: valor
+    }))
+
+    cep(valor)
+  }}
+  erro={erros.cep}
+  placeholder="40020-000"
+/>
                   <Field rotulo="Município" value={f.nome} onChange={set('nome')} erro={erros.nome} />
                   <Field rotulo="UF" value={f.uf} onChange={set('uf')} erro={erros.uf} maxLength={2} />
                   <Field rotulo="Código IBGE" value={f.ibge} onChange={set('ibge')} erro={erros.ibge} inputMode="numeric" />

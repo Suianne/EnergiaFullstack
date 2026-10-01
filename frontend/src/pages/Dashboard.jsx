@@ -22,7 +22,22 @@ export default function Dashboard() {
             <BarChart data={ranking} layout="vertical" margin={{ left: 20 }}>
               <XAxis type="number" domain={[0, 1]} stroke="#94A3B8" />
               <YAxis type="category" dataKey="nome" width={120} stroke="#94A3B8" />
-              <Tooltip contentStyle={{ background: '#0F172A', border: '1px solid #334155' }} />
+              <Tooltip
+  formatter={(valor) => [`Ci: ${Number(valor).toFixed(3).replace('.', ',')}`, '']}
+  contentStyle={{
+    backgroundColor: '#ffffff',
+    border: '1px solid #e2e8e3',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.10)',
+  }}
+  labelStyle={{
+    color: '#1f2937',
+    fontWeight: '600',
+  }}
+  itemStyle={{
+    color: '#176b3a',
+  }}
+/>
               <Bar dataKey="ci">{ranking.map((m) => <Cell key={m.ibge} fill={faixa(m.ci).cor} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
