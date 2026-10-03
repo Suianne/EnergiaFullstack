@@ -6,3 +6,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
