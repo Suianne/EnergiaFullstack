@@ -110,4 +110,4 @@ function topsis(matriz, pesos, tipos) {
   return { ranking, idealPositivo, idealNegativo };
 }
 
-export default { topsis, TopsisInputError, TOLERANCIA_PESOS };
+module.exports = { topsis, TopsisInputError, TOLERANCIA_PESOS };
