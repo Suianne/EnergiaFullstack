@@ -11,5 +11,11 @@
   "license": "ISC",
   "type": "commonjs",
   "private": true,
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
 }

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { topsis, TopsisInputError } = require('./topsis.service');
+const { topsis, TopsisInputError } = require('../src/services/topsis.service');
 
 // Exemplo numérico do Cap. 7.3 do roteiro.
 // Critérios: C1 custo, C2 benefício, C3 benefício, C4 custo, C5 benefício.
