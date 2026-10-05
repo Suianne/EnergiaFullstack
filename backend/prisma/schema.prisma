@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id         Int         @id @default(autoincrement())
+  simulacoes Simulacao[]
+
+  @@map("usuarios")
+}
+
+model Municipio {
+  id                  Int                 @id @default(autoincrement())
+  nome                String              @db.VarChar(200)
+  uf                  String              @db.Char(2)
+  populacao           Int?
+  idh                 Decimal?            @db.Decimal(4, 3)
+  coordenadas         Unsupported("geometry")?
+  createdAt           DateTime?           @default(now()) @map("created_at")
+
+  matrizDecisao       MatrizDecisao[]
+  resultadosRanking   ResultadoRanking[]
+
+  @@map("municipios")
+}
+
+model Criterio {
+  id                  Int                 @id @default(autoincrement())
+  nome                String              @db.VarChar(150)
+  descricao           String?
+  tipo                String?             @db.VarChar(10)
+  peso                Decimal?            @default(0.0) @db.Decimal(5, 4)
+  unidade             String?             @db.VarChar(50)
+
+  matrizDecisao       MatrizDecisao[]
+
+  @@map("criterios")
+}
+
+model MatrizDecisao {
+  id                  Int                 @id @default(autoincrement())
+  municipioId         Int?                @map("municipio_id")
+  criterioId          Int?                @map("criterio_id")
+  valor               Decimal             @db.Decimal(15, 4)
+  anoReferencia       Int?                @map("ano_referencia")
+
+  municipio            Municipio?         @relation(fields: [municipioId], references: [id])
+  criterio             Criterio?          @relation(fields: [criterioId], references: [id])
+
+  @@unique([municipioId, criterioId, anoReferencia])
+  @@map("matriz_decisao")
+}
+
+model Simulacao {
+  id                  Int                 @id @default(autoincrement())
+  usuarioId           Int?                @map("usuario_id")
+  dataExecucao        DateTime?           @default(now()) @map("data_execucao")
+  parametros          Json?
+  status              String?             @default("concluida") @db.VarChar(20)
+
+  usuario             Usuario?           @relation(fields: [usuarioId], references: [id])
+  resultadosRanking   ResultadoRanking[]
+
+  @@map("simulacoes")
+}
+
+model ResultadoRanking {
+  id                  Int                 @id @default(autoincrement())
+  simulacaoId         Int?                @map("simulacao_id")
+  municipioId         Int?                @map("municipio_id")
+  coeficienteCi       Decimal?            @map("coeficiente_ci") @db.Decimal(10, 8)
+  distanciaPositiva   Decimal?            @map("distancia_positiva") @db.Decimal(10, 8)
+  distanciaNegativa   Decimal?            @map("distancia_negativa") @db.Decimal(10, 8)
+  posicao             Int?
+
+  simulacao           Simulacao?          @relation(fields: [simulacaoId], references: [id])
+  municipio           Municipio?          @relation(fields: [municipioId], references: [id])
+
+  @@map("resultados_ranking")
+}
