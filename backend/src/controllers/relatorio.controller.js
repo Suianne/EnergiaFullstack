@@ -1,4 +1,5 @@
-const { gerarCsvRanking } = require('../services/relatorio.service');
+const { gerarCsvRanking, gerarPdfRanking } = require('../services/relatorio.service');
+const simulacaoService = require('../services/simulacao.service');
 const { ErroRequisicao } = require('../middleware/errorHandler');
 
 const eNumero = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -37,4 +38,31 @@ function gerarCsv(req, res) {
   res.send(csv);
 }
 
-module.exports = { gerarCsv };
+async function gerarPdf(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const simulacao = await simulacaoService.buscarPorId(id);
+
+    if (!simulacao) {
+      return res.status(404).json({ erro: 'Simulação não encontrada.' });
+    }
+
+    const ranking = simulacao.resultadosRanking.map((r) => ({
+      posicao: r.posicao,
+      alternativa: r.municipio?.nome || `Alternativa ${r.posicao}`,
+      ci: Number(r.coeficienteCi),
+      distanciaPositiva: Number(r.distanciaPositiva),
+      distanciaNegativa: Number(r.distanciaNegativa),
+    }));
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="relatorio-topsis-${id}.pdf"`);
+
+    const doc = gerarPdfRanking(ranking, simulacao.parametros);
+    doc.pipe(res);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { gerarCsv, gerarPdf };
