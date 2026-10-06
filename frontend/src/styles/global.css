@@ -433,3 +433,51 @@ tbody tr:hover {
 .login-icon {
   font-size: 2.5rem;
 }
+
+/* =========================
+   SIDEBAR FOOTER (USUÁRIO)
+========================= */
+
+.side {
+  display: flex;
+  flex-direction: column;
+}
+
+.side-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.side-user {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.side-perfil {
+  color: #9bbfaa;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.btn-logout {
+  margin-top: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cce5d5;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
