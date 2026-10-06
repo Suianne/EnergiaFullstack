@@ -1,20 +1,37 @@
-import { Routes, Route } from 'react-router-dom'
-import Layout from '../src/components/Layout.jsx'
-import Dashboard from '../src/pages/Dashboard.jsx'
-import Topsis from '../src/pages/Topsis.jsx'
-import Resultado from '../src/pages/Resultado.jsx'
-import Cadastro from '../src/pages/Cadastro.jsx'
-import Mapa from '../src/pages/Mapa.jsx'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth.jsx'
+import Layout from './components/Layout.jsx'
+import Login from './pages/Login.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import Topsis from './pages/Topsis.jsx'
+import Resultado from './pages/Resultado.jsx'
+import Cadastro from './pages/Cadastro.jsx'
+import Mapa from './pages/Mapa.jsx'
+
+function RotaProtegida({ perfis, children }) {
+  const { logado, temPermissao } = useAuth()
+  if (!logado) return <Navigate to="/login" />
+  if (perfis && !temPermissao(...perfis)) return <Navigate to="/" />
+  return children
+}
 
 export default function App() {
+  const { logado, login } = useAuth()
+
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Dashboard />}/>
-        <Route path="configuracao" element={<Topsis />}/>
-        <Route path="resultado" element={<Resultado />}/>
-        <Route path="municipios" element={<Cadastro />}/>
-        <Route path="mapa" element={<Mapa />}/>
+      <Route path="/login" element={logado ? <Navigate to="/" /> : <Login onLogin={login} />} />
+
+      <Route element={<RotaProtegida><Layout /></RotaProtegida>}>
+        <Route index element={<Dashboard />} />
+        <Route path="configuracao" element={
+          <RotaProtegida perfis={['ADMINISTRADOR', 'PESQUISADOR']}><Topsis /></RotaProtegida>
+        } />
+        <Route path="resultado" element={<Resultado />} />
+        <Route path="municipios" element={
+          <RotaProtegida perfis={['ADMINISTRADOR']}><Cadastro /></RotaProtegida>
+        } />
+        <Route path="mapa" element={<Mapa />} />
       </Route>
     </Routes>
   )
