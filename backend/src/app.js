@@ -6,6 +6,7 @@ const criterioRoutes = require('./routes/criterio.routes');
 const topsisRoutes = require('./routes/topsis.routes');
 const simulacaoRoutes = require('./routes/simulacao.routes');
 const relatorioRoutes = require('./routes/relatorio.routes');
+const importacaoRoutes = require('./routes/importacao.routes');
 const { rotaNaoEncontrada, tratarErros } = require('./middleware/errorHandler');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use('/api/criterios', criterioRoutes);
 app.use('/api/topsis', topsisRoutes);
 app.use('/api/simulacoes', simulacaoRoutes);
 app.use('/api/relatorios', relatorioRoutes);
+app.use('/api/importacao', importacaoRoutes);
 
 // Sempre por último: pega o que nenhuma rota atendeu e os erros.
 app.use(rotaNaoEncontrada);
