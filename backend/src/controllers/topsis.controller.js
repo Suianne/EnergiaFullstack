@@ -1,4 +1,5 @@
 const { topsis } = require('../services/topsis.service');
+const simulacaoService = require('../services/simulacao.service');
 const { ErroRequisicao } = require('../middleware/errorHandler');
 
 // Confere só o FORMATO do JSON. As regras numéricas (pesos somando 1, tipos válidos...)
@@ -28,22 +29,37 @@ function validarCorpo(body) {
   return { alternativas, criterios, matriz };
 }
 
-function executar(req, res) {
-  const { alternativas, criterios, matriz } = validarCorpo(req.body);
+async function executar(req, res, next) {
+  try {
+    const { alternativas, criterios, matriz } = validarCorpo(req.body);
 
-  const pesos = criterios.map((c) => c.peso);
-  const tipos = criterios.map((c) => c.tipo);
-  const { ranking } = topsis(matriz, pesos, tipos);
+    const pesos = criterios.map((c) => c.peso);
+    const tipos = criterios.map((c) => c.tipo);
+    const { ranking } = topsis(matriz, pesos, tipos);
 
-  res.json({
-    ranking: ranking.map((r) => ({
+    const rankingFormatado = ranking.map((r) => ({
       posicao: r.posicao,
-      alternativa: alternativas[r.indice], // troca o índice pelo nome
+      alternativa: alternativas[r.indice],
       ci: r.ci,
       distanciaPositiva: r.distanciaPositiva,
       distanciaNegativa: r.distanciaNegativa,
-    })),
-  });
+    }));
+
+    // Salva a simulação no banco de dados
+    const simulacao = await simulacaoService.salvar({
+      parametros: { alternativas, criterios, matriz },
+      resultados: ranking.map((r) => ({
+        ci: r.ci,
+        distanciaPositiva: r.distanciaPositiva,
+        distanciaNegativa: r.distanciaNegativa,
+        posicao: r.posicao,
+      })),
+    });
+
+    res.json({ simulacaoId: simulacao.id, ranking: rankingFormatado });
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = { executar };
