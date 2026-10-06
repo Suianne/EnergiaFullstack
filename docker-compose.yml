@@ -15,6 +15,7 @@ services:
     environment:
       - PORT=3000
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/energia_db
+      - JWT_SECRET=energia-renovavel-jwt-secret-2024
     volumes:
       - ./backend:/app
       - /app/node_modules

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const authRoutes = require('./routes/auth.routes');
 const municipioRoutes = require('./routes/municipio.routes');
 const criterioRoutes = require('./routes/criterio.routes');
 const topsisRoutes = require('./routes/topsis.routes');
@@ -13,6 +14,7 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.use('/api/auth', authRoutes);
 app.use('/api/municipios', municipioRoutes);
 app.use('/api/criterios', criterioRoutes);
 app.use('/api/topsis', topsisRoutes);
