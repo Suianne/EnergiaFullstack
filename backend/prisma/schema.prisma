@@ -6,8 +6,20 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Perfil {
+  ADMINISTRADOR
+  PESQUISADOR
+  GESTOR
+}
+
 model Usuario {
   id         Int         @id @default(autoincrement())
+  nome       String      @db.VarChar(150)
+  email      String      @unique @db.VarChar(200)
+  senha      String      @db.VarChar(255)
+  perfil     Perfil      @default(PESQUISADOR)
+  createdAt  DateTime    @default(now()) @map("created_at")
+
   simulacoes Simulacao[]
 
   @@map("usuarios")
