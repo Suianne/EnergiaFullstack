@@ -1,0 +1,15 @@
+{
+  "alternativas": ["Município A", "Município B", "Município C"],
+  "criterios": [
+    { "nome": "% sem eletricidade", "tipo": "custo", "peso": 0.20 },
+    { "nome": "Capacidade solar (kW/hab)", "tipo": "beneficio", "peso": 0.20 },
+    { "nome": "Renda per capita (R$)", "tipo": "beneficio", "peso": 0.15 },
+    { "nome": "Tarifa média (R$/kWh)", "tipo": "custo", "peso": 0.25 },
+    { "nome": "Irradiação solar", "tipo": "beneficio", "peso": 0.20 }
+  ],
+  "matriz": [
+    [15, 0.8, 980, 0.75, 5.2],
+    [5, 2.1, 1850, 0.62, 5.8],
+    [22, 0.3, 650, 0.89, 4.9]
+  ]
+}
