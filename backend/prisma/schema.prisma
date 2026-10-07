@@ -31,7 +31,8 @@ model Municipio {
   uf                  String              @db.Char(2)
   populacao           Int?
   idh                 Decimal?            @db.Decimal(4, 3)
-  coordenadas         Unsupported("geometry")?
+  latitude            Decimal?            @db.Decimal(10, 7)
+  longitude           Decimal?            @db.Decimal(10, 7)
   createdAt           DateTime?           @default(now()) @map("created_at")
 
   matrizDecisao       MatrizDecisao[]

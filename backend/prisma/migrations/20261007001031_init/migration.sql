@@ -1,7 +1,14 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
+-- CreateEnum
+CREATE TYPE "Perfil" AS ENUM ('ADMINISTRADOR', 'PESQUISADOR', 'GESTOR');
 
+-- CreateTable
 CREATE TABLE "usuarios" (
     "id" SERIAL NOT NULL,
+    "nome" VARCHAR(150) NOT NULL,
+    "email" VARCHAR(200) NOT NULL,
+    "senha" VARCHAR(255) NOT NULL,
+    "perfil" "Perfil" NOT NULL DEFAULT 'PESQUISADOR',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "usuarios_pkey" PRIMARY KEY ("id")
 );
@@ -13,7 +20,8 @@ CREATE TABLE "municipios" (
     "uf" CHAR(2) NOT NULL,
     "populacao" INTEGER,
     "idh" DECIMAL(4,3),
-    "coordenadas" geometry(Point, 4326),
+    "latitude" DECIMAL(10,7),
+    "longitude" DECIMAL(10,7),
     "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "municipios_pkey" PRIMARY KEY ("id")
@@ -30,10 +38,6 @@ CREATE TABLE "criterios" (
 
     CONSTRAINT "criterios_pkey" PRIMARY KEY ("id")
 );
-
-ALTER TABLE "criterios"
-ADD CONSTRAINT "criterios_tipo_check"
-CHECK ("tipo" IN ('beneficio', 'custo'));
 
 -- CreateTable
 CREATE TABLE "matriz_decisao" (
@@ -69,6 +73,9 @@ CREATE TABLE "resultados_ranking" (
 
     CONSTRAINT "resultados_ranking_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "usuarios_email_key" ON "usuarios"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "matriz_decisao_municipio_id_criterio_id_ano_referencia_key" ON "matriz_decisao"("municipio_id", "criterio_id", "ano_referencia");
