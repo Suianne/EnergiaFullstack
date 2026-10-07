@@ -1,7 +1,17 @@
 const prisma = require('../config/database');
 
 async function listar() {
-  return prisma.municipio.findMany({ orderBy: { nome: 'asc' } });
+  const municipios = await prisma.municipio.findMany({
+    orderBy: { nome: 'asc' },
+    include: { matrizDecisao: { select: { criterioId: true, valor: true } } },
+  });
+
+  return municipios.map(({ matrizDecisao, ...m }) => ({
+    ...m,
+    valores: Object.fromEntries(
+      matrizDecisao.filter((md) => md.criterioId).map((md) => [md.criterioId, Number(md.valor)]),
+    ),
+  }));
 }
 
 async function buscarPorId(id) {

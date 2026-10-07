@@ -42,8 +42,11 @@ async function criar(req, res, next) {
     const municipio = await service.criar({
       nome: req.body.nome.trim(),
       uf: req.body.uf.toUpperCase(),
+      codigoIbge: req.body.codigoIbge || null,
       populacao: req.body.populacao ?? null,
       idh: req.body.idh ?? null,
+      latitude: req.body.latitude ?? null,
+      longitude: req.body.longitude ?? null,
     });
 
     res.status(201).json(municipio);
@@ -60,8 +63,11 @@ async function atualizar(req, res, next) {
     const municipio = await service.atualizar(id, {
       nome: req.body.nome.trim(),
       uf: req.body.uf.toUpperCase(),
+      codigoIbge: req.body.codigoIbge || null,
       populacao: req.body.populacao ?? null,
       idh: req.body.idh ?? null,
+      latitude: req.body.latitude ?? null,
+      longitude: req.body.longitude ?? null,
     });
 
     res.json(municipio);

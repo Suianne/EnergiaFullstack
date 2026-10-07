@@ -56,6 +56,10 @@ export function exportarPdf(simulacaoId) {
   })
 }
 
+// Importação IBGE + ANEEL
+export const importarMunicipiosIBGE = (uf) => req(`/importacao/ibge/municipios/${uf}`, { method: 'POST' })
+export const popularDadosApis = (uf, limite = 10) => req(`/importacao/popular-dados/${uf}?limite=${limite}`, { method: 'POST' })
+
 // CEP
 export async function buscarCep(cep) {
   const r = await fetch(`https://viacep.com.br/ws/${cep.replace(/\D/g, '')}/json/`)

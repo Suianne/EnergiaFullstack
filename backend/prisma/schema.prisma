@@ -28,6 +28,7 @@ model Usuario {
 model Municipio {
   id                  Int                 @id @default(autoincrement())
   nome                String              @db.VarChar(200)
+  codigoIbge          String?             @unique @map("codigo_ibge") @db.VarChar(10)
   uf                  String              @db.Char(2)
   populacao           Int?
   idh                 Decimal?            @db.Decimal(4, 3)

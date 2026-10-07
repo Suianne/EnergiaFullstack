@@ -1,32 +1,34 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { rank } from '../utils/topsis.js'
 import { useAuth } from './useAuth.jsx'
 import { listarMunicipios, listarCriterios } from '../services/api.js'
-import { MUNICIPIOS, CRITERIOS } from '../services/mock.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 
 export function AppProvider({ children }) {
   const { logado } = useAuth()
-  const [municipios, setMunicipios] = useState(MUNICIPIOS)
-  const [criterios, setCriterios] = useState(CRITERIOS)
+  const [municipios, setMunicipios] = useState([])
+  const [criterios, setCriterios] = useState([])
   const [carregando, setCarregando] = useState(false)
 
-  useEffect(() => {
+  const recarregar = useCallback(() => {
     if (!logado) return
-
     setCarregando(true)
     Promise.all([listarMunicipios(), listarCriterios()])
       .then(([m, c]) => {
-        if (Array.isArray(m) && m.length > 0) setMunicipios(m)
-        if (Array.isArray(c) && c.length > 0) {
+        if (Array.isArray(m)) setMunicipios(m)
+        if (Array.isArray(c)) {
           setCriterios(c.map((cr) => ({ ...cr, peso: Number(cr.peso) || 0 })))
         }
       })
       .catch(() => {})
       .finally(() => setCarregando(false))
   }, [logado])
+
+  useEffect(() => {
+    recarregar()
+  }, [recarregar])
 
   const ranking = useMemo(() => {
     try {
@@ -37,7 +39,7 @@ export function AppProvider({ children }) {
   }, [municipios, criterios])
 
   return (
-    <Ctx.Provider value={{ municipios, setMunicipios, criterios, setCriterios, ranking, carregando }}>
+    <Ctx.Provider value={{ municipios, setMunicipios, criterios, setCriterios, ranking, carregando, recarregar }}>
       {children}
     </Ctx.Provider>
   )
