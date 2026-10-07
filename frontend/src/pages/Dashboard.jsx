@@ -38,7 +38,7 @@ export default function Dashboard() {
     color: '#176b3a',
   }}
 />
-              <Bar dataKey="ci">{ranking.map((m) => <Cell key={m.ibge} fill={faixa(m.ci).cor} />)}</Bar>
+              <Bar dataKey="ci">{ranking.map((m) => <Cell key={m.ibge || m.id || m.nome} fill={faixa(m.ci).cor} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>

@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 function getToken() {
   return localStorage.getItem('token')
@@ -12,9 +12,6 @@ async function req(path, opts = {}) {
   const r = await fetch(BASE + path, { ...opts, headers })
 
   if (r.status === 401) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('usuario')
-    window.location.href = '/login'
     throw new Error('Sessão expirada')
   }
 

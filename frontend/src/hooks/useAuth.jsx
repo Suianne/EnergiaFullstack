@@ -25,9 +25,17 @@ export function AuthProvider({ children }) {
     }
   }, [auth])
 
-  const login = (token, usuario) => setAuth({ token, usuario })
+  const login = (token, usuario) => {
+    localStorage.setItem('token', token)
+    localStorage.setItem('usuario', JSON.stringify(usuario))
+    setAuth({ token, usuario })
+  }
 
-  const logout = () => setAuth(null)
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('usuario')
+    setAuth(null)
+  }
 
   const temPermissao = (...perfisPermitidos) => {
     if (!auth) return false

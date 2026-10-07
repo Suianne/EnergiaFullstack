@@ -9,8 +9,8 @@ export default function Resultado() {
   const { ranking, criterios } = useApp()
   const [sel, setSel] = useState(0)
   const atual = ranking[sel]
-  const max = (id) => Math.max(...ranking.map((m) => m.valores[id])) || 1
-  const radar = atual ? criterios.map((c) => ({ criterio: c.nome.split(' (')[0], v: atual.valores[c.id] / max(c.id) })) : []
+  const max = (id) => Math.max(...ranking.map((m) => m.valores?.[id] || 0)) || 1
+  const radar = atual ? criterios.map((c) => ({ criterio: c.nome.split(' (')[0], v: (atual.valores?.[c.id] || 0) / max(c.id) })) : []
   const exportar = () => {
     const csv = ['pos;municipio;ci', ...ranking.map((m) => `${m.pos};${m.nome};${m.ci.toFixed(4)}`)].join('\n')
     const a = document.createElement('a')
@@ -23,7 +23,7 @@ export default function Resultado() {
         <Card><div className="tablewrap"><table>
           <thead><tr><th>#</th><th>Município</th><th>Ci</th><th>Faixa</th></tr></thead>
           <tbody>{ranking.map((m, i) => (
-            <tr key={m.ibge} onClick={() => setSel(i)} style={{ cursor: 'pointer', background: i === sel ? 'var(--bg)' : undefined }}>
+            <tr key={m.ibge || m.id || m.nome} onClick={() => setSel(i)} style={{ cursor: 'pointer', background: i === sel ? 'var(--bg)' : undefined }}>
               <td>{m.pos}</td><td>{m.nome}</td><td>{m.ci.toFixed(3)}</td><td><Faixa ci={m.ci} /></td></tr>))}</tbody>
         </table></div></Card>
         <Card titulo={atual ? `Perfil: ${atual.nome}` : 'Perfil'}>

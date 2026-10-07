@@ -9,33 +9,32 @@ export const useApp = () => useContext(Ctx)
 
 export function AppProvider({ children }) {
   const { logado } = useAuth()
-  const [municipios, setMunicipios] = useState([])
-  const [criterios, setCriterios] = useState([])
-  const [carregando, setCarregando] = useState(true)
+  const [municipios, setMunicipios] = useState(MUNICIPIOS)
+  const [criterios, setCriterios] = useState(CRITERIOS)
+  const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
-    if (!logado) {
-      setMunicipios([])
-      setCriterios([])
-      setCarregando(false)
-      return
-    }
+    if (!logado) return
 
     setCarregando(true)
     Promise.all([listarMunicipios(), listarCriterios()])
       .then(([m, c]) => {
-        setMunicipios(m)
-        setCriterios(c)
+        if (Array.isArray(m) && m.length > 0) setMunicipios(m)
+        if (Array.isArray(c) && c.length > 0) {
+          setCriterios(c.map((cr) => ({ ...cr, peso: Number(cr.peso) || 0 })))
+        }
       })
-      .catch(() => {
-        // Fallback para dados mock se a API não estiver disponível
-        setMunicipios(MUNICIPIOS)
-        setCriterios(CRITERIOS)
-      })
+      .catch(() => {})
       .finally(() => setCarregando(false))
   }, [logado])
 
-  const ranking = useMemo(() => rank(municipios, criterios), [municipios, criterios])
+  const ranking = useMemo(() => {
+    try {
+      return rank(municipios, criterios)
+    } catch {
+      return []
+    }
+  }, [municipios, criterios])
 
   return (
     <Ctx.Provider value={{ municipios, setMunicipios, criterios, setCriterios, ranking, carregando }}>

@@ -5,7 +5,7 @@ import MapaCalor from '../components/MapaCalor.jsx'
 export default function Mapa() {
   const { ranking, criterios } = useApp()
   const [ind, setInd] = useState('ci')
-  const vals = ranking.map((m) => (ind === 'ci' ? m.ci : m.valores[ind]))
+  const vals = ranking.map((m) => (ind === 'ci' ? m.ci : (m.valores?.[ind] || 0)))
   const [mn, mx] = [Math.min(...vals), Math.max(...vals)]
   const itens = ranking.map((m, i) => ({ ...m, valor: mx === mn ? 0.5 : (vals[i] - mn) / (mx - mn) }))
   return (
