@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test",
-    "vercel-build": "prisma generate"
+    "vercel-build": "prisma migrate deploy && prisma generate"
   },
   "keywords": [],
   "author": "",
