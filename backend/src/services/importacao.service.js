@@ -36,14 +36,14 @@ async function buscarIndicadoresIBGE(codigoIbge) {
     }
   } catch { /* indicador indisponível */ }
 
-  // PIB per capita (pesquisa 5938, variável 38)
+  // PIB per capita — API de Pesquisas (pesquisa 38, indicador 47001)
   try {
-    const urlPib = `https://servicodados.ibge.gov.br/api/v3/agregados/5938/periodos/-1/variaveis/38?localidades=N6[${codigoIbge}]`;
+    const urlPib = `https://servicodados.ibge.gov.br/api/v1/pesquisas/38/indicadores/47001/resultados/${codigoIbge}`;
     const res = await fetch(urlPib);
     if (res.ok) {
       const dados = await res.json();
-      const serie = dados[0]?.resultados?.[0]?.series?.[0]?.serie || {};
-      const ultimoAno = Object.keys(serie).sort().pop();
+      const serie = dados[0]?.res?.[0]?.res || {};
+      const ultimoAno = Object.keys(serie).filter((k) => serie[k] != null).sort().pop();
       const pib = ultimoAno ? parseFloat(serie[ultimoAno]) : null;
       resultado.pibPerCapita = Number.isFinite(pib) ? pib : null;
     }
@@ -90,66 +90,52 @@ async function importarMunicipiosUF(uf) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ANEEL — Geração Distribuída (dados abertos CKAN)
+//  ANEEL — SIGA (Sistema de Informações de Geração da ANEEL)
 // ═══════════════════════════════════════════════════════════════
 
 const ANEEL_BASE = 'https://dadosabertos.aneel.gov.br/api/3/action';
-const ANEEL_GD_DATASET = 'relacao-de-empreendimentos-de-geracao-distribuida';
+// Resource do SIGA com todas as usinas de geração do Brasil
+const SIGA_RESOURCE = '11ec447d-698d-4ab8-977f-b424d5deee6a';
+// Tipos de geração renovável
+const TIPOS_RENOVAVEIS = ['UFV', 'EOL', 'PCH', 'CGH', 'CGU'];
 
 /**
- * Busca dados agregados de Geração Distribuída (GD) da ANEEL por UF.
- * Retorna mapa: { codigoIbge: { potenciaInstalada, unidadesGeradoras } }
+ * Busca dados de geração renovável do SIGA/ANEEL por UF.
+ * Retorna mapa: { "NomeMunicipio": { potenciaInstalada, usinasRenovaveis } }
  */
 async function buscarDadosANEEL(uf) {
   try {
-    // 1. Descobrir resource_id do dataset GD
-    const pkgRes = await fetch(`${ANEEL_BASE}/package_show?id=${ANEEL_GD_DATASET}`);
-    if (!pkgRes.ok) throw new Error(`ANEEL indisponível (${pkgRes.status})`);
-    const pkg = await pkgRes.json();
-    const resource = pkg.result?.resources?.find((r) => r.datastore_active);
-    if (!resource) throw new Error('Recurso ANEEL GD não encontrado no datastore');
-
-    // 2. Tentar agregação SQL (mais eficiente)
     const ufSafe = uf.toUpperCase().replace(/[^A-Z]/g, '');
-    const sql = `SELECT "CodMunicipioIbge", SUM(CAST("MdaPotenciaInstaladaKW" AS float)) as potencia, COUNT(*) as unidades FROM "${resource.id}" WHERE "SigUF" = '${ufSafe}' GROUP BY "CodMunicipioIbge"`;
-
-    const sqlRes = await fetch(`${ANEEL_BASE}/datastore_search_sql?sql=${encodeURIComponent(sql)}`);
-    if (sqlRes.ok) {
-      const data = await sqlRes.json();
-      if (data.success) {
-        const result = {};
-        for (const row of data.result?.records || []) {
-          const code = String(row.CodMunicipioIbge || '');
-          if (code) {
-            result[code] = {
-              potenciaInstalada: Math.round(Number(row.potencia) || 0),
-              unidadesGeradoras: Number(row.unidades) || 0,
-            };
-          }
-        }
-        return result;
-      }
-    }
-
-    // 3. Fallback: busca paginada
     const result = {};
     let offset = 0;
-    const limit = 5000;
+    const limit = 1000;
 
-    for (let page = 0; page < 20; page++) {
-      const filters = JSON.stringify({ SigUF: ufSafe });
-      const url = `${ANEEL_BASE}/datastore_search?resource_id=${resource.id}&filters=${encodeURIComponent(filters)}&limit=${limit}&offset=${offset}`;
+    for (let page = 0; page < 30; page++) {
+      const filters = JSON.stringify({ SigUFPrincipal: ufSafe });
+      const url = `${ANEEL_BASE}/datastore_search?resource_id=${SIGA_RESOURCE}&filters=${encodeURIComponent(filters)}&limit=${limit}&offset=${offset}`;
       const res = await fetch(url);
       if (!res.ok) break;
       const data = await res.json();
+      if (!data.success) break;
       const records = data.result?.records || [];
 
       for (const r of records) {
-        const code = String(r.CodMunicipioIbge || '');
-        if (!code) continue;
-        if (!result[code]) result[code] = { potenciaInstalada: 0, unidadesGeradoras: 0 };
-        result[code].potenciaInstalada += Number(r.MdaPotenciaInstaladaKW || 0);
-        result[code].unidadesGeradoras += 1;
+        // Filtrar: só renováveis em operação
+        if (!TIPOS_RENOVAVEIS.includes(r.SigTipoGeracao)) continue;
+        if (r.DscFaseUsina !== 'Operação') continue;
+
+        // Extrair nome do município de "NomeMunicipio - UF"
+        const descMun = r.DscMuninicpios || '';
+        const nomeMun = descMun.split(' - ')[0].trim();
+        if (!nomeMun) continue;
+
+        // Parsear potência (pode ter vírgula como separador decimal)
+        const potStr = String(r.MdaPotenciaFiscalizadaKw || '0').replace(',', '.');
+        const potencia = parseFloat(potStr) || 0;
+
+        if (!result[nomeMun]) result[nomeMun] = { potenciaInstalada: 0, usinasRenovaveis: 0 };
+        result[nomeMun].potenciaInstalada += potencia;
+        result[nomeMun].usinasRenovaveis += 1;
       }
 
       if (records.length < limit) break;
@@ -158,7 +144,7 @@ async function buscarDadosANEEL(uf) {
 
     return result;
   } catch (err) {
-    console.error('Erro ao buscar dados ANEEL:', err.message);
+    console.error('Erro ao buscar dados ANEEL/SIGA:', err.message);
     return {};
   }
 }
@@ -170,8 +156,8 @@ async function buscarDadosANEEL(uf) {
 const CRITERIOS_PADRAO = [
   { nome: 'População', descricao: 'População estimada (IBGE)', tipo: 'beneficio', peso: 0.25, unidade: 'hab' },
   { nome: 'PIB per capita', descricao: 'PIB per capita municipal (IBGE)', tipo: 'custo', peso: 0.25, unidade: 'R$' },
-  { nome: 'Potência instalada GD', descricao: 'Potência instalada de geração distribuída (ANEEL)', tipo: 'beneficio', peso: 0.25, unidade: 'kW' },
-  { nome: 'Unidades geradoras GD', descricao: 'Nº de unidades de geração distribuída (ANEEL)', tipo: 'beneficio', peso: 0.25, unidade: 'un' },
+  { nome: 'Potência instalada GD', descricao: 'Potência instalada de geração renovável em operação (ANEEL/SIGA)', tipo: 'beneficio', peso: 0.25, unidade: 'kW' },
+  { nome: 'Unidades geradoras GD', descricao: 'Nº de usinas renováveis em operação (ANEEL/SIGA)', tipo: 'beneficio', peso: 0.25, unidade: 'un' },
 ];
 
 /**
@@ -201,7 +187,6 @@ async function popularDados(uf, limite = 10) {
   });
 
   if (municipios.length === 0) {
-    // Se não há novos, verificar total para feedback
     const total = await prisma.municipio.count({ where: { uf: uf.toUpperCase() } });
     return {
       criterios: criterios.length,
@@ -212,7 +197,7 @@ async function popularDados(uf, limite = 10) {
     };
   }
 
-  // 3. Buscar dados ANEEL para a UF inteira (uma chamada)
+  // 3. Buscar dados ANEEL para a UF inteira (uma chamada, indexado por nome)
   const dadosAneel = await buscarDadosANEEL(uf);
 
   // 4. Processar cada município
@@ -223,13 +208,15 @@ async function popularDados(uf, limite = 10) {
   for (const mun of municipios) {
     try {
       const ibge = await buscarIndicadoresIBGE(mun.codigoIbge);
-      const aneel = dadosAneel[mun.codigoIbge] || { potenciaInstalada: 0, unidadesGeradoras: 0 };
+
+      // ANEEL: match por nome do município
+      const aneel = dadosAneel[mun.nome] || { potenciaInstalada: 0, usinasRenovaveis: 0 };
 
       const valores = [
         { criterioId: criterios[0].id, valor: ibge.populacao || 0 },
         { criterioId: criterios[1].id, valor: ibge.pibPerCapita || 0 },
         { criterioId: criterios[2].id, valor: aneel.potenciaInstalada },
-        { criterioId: criterios[3].id, valor: aneel.unidadesGeradoras },
+        { criterioId: criterios[3].id, valor: aneel.usinasRenovaveis },
       ];
 
       for (const v of valores) {
@@ -275,7 +262,7 @@ async function popularDados(uf, limite = 10) {
     completo: totalRestante === 0,
     fontes: {
       ibge: ['população', 'PIB per capita'],
-      aneel: [`geração distribuída (${Object.keys(dadosAneel).length} municípios com dados)`],
+      aneel: [`SIGA - geração renovável (${Object.keys(dadosAneel).length} municípios com usinas)`],
     },
     erros: erros.length > 0 ? erros : undefined,
   };
