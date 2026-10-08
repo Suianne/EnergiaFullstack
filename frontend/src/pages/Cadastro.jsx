@@ -81,7 +81,7 @@ export default function Cadastro() {
     setPopulando(true)
     setMsgImport('')
     try {
-      const r = await popularDadosApis(ufImport.toUpperCase(), 15)
+      const r = await popularDadosApis(ufImport.toUpperCase())
       setMsgImport(r.mensagem)
       recarregar()
     } catch (err) {

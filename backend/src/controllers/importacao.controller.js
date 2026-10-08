@@ -42,13 +42,10 @@ async function popularDadosPorUF(req, res, next) {
       throw new ErroRequisicao('"uf" deve ter exatamente 2 caracteres.');
     }
 
-    const limite = Math.min(Number(req.query.limite) || 10, 50);
-    const resultado = await service.popularDados(uf.toUpperCase(), limite);
+    const resultado = await service.popularDados(uf.toUpperCase());
 
     res.json({
-      mensagem: resultado.completo
-        ? `Dados completos para ${uf.toUpperCase()}.`
-        : `Processados ${resultado.municipiosProcessados} municípios. Restam ${resultado.municipiosRestantes}.`,
+      mensagem: `Dados completos para ${uf.toUpperCase()}: ${resultado.municipiosProcessados} municípios processados.`,
       ...resultado,
     });
   } catch (err) {
