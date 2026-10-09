@@ -1,10 +1,34 @@
 /**
  * Motor TOPSIS
- * Convenção do projeto: quanto MAIOR o Ci, MENOS vulnerável é a alternativa.
+ *
+ * Convenção do projeto: Ci é um ÍNDICE DE VULNERABILIDADE energética.
+ * Quanto MAIOR o Ci, MAIS vulnerável (maior prioridade de intervenção) é o município.
+ *
+ * Os critérios são configurados de forma que a solução ideal positiva (A+)
+ * represente o perfil de maior vulnerabilidade:
+ *   - "beneficio": quanto maior o valor, mais vulnerável (ex.: população exposta);
+ *   - "custo":     quanto maior o valor, menos vulnerável (ex.: PIB per capita,
+ *                  potência renovável instalada, usinas renováveis em operação).
+ *
+ * Município sem geração renovável constatada pela ANEEL tem valor 0 nos critérios
+ * da ANEEL (tipo "custo") e, portanto, fica no extremo de maior vulnerabilidade
+ * nesses critérios. Município SEM DADOS (API não respondeu) não entra na matriz:
+ * ausência de dado não é zero. Veja `montarMatrizMunicipios`.
  */
 
 const TIPOS_VALIDOS = ['beneficio', 'custo'];
 const TOLERANCIA_PESOS = 1e-6;
+
+// Faixas de vulnerabilidade usadas em relatórios e na interface.
+const FAIXAS = [
+  { nome: 'Alta', minimo: 0.66 },
+  { nome: 'Média', minimo: 0.33 },
+  { nome: 'Baixa', minimo: 0 },
+];
+
+function faixaVulnerabilidade(ci) {
+  return (FAIXAS.find((f) => ci >= f.minimo) || FAIXAS[FAIXAS.length - 1]).nome;
+}
 
 class TopsisInputError extends Error {
   constructor(message) {
@@ -54,6 +78,55 @@ function validarEntrada(matriz, pesos, tipos) {
 }
 
 /**
+ * Normaliza pesos para somarem 1 (ex.: [1, 1, 2] -> [0.25, 0.25, 0.5]).
+ */
+function normalizarPesos(pesos) {
+  if (!Array.isArray(pesos) || pesos.length === 0) {
+    throw new TopsisInputError('É necessário ao menos 1 critério.');
+  }
+  pesos.forEach((p, j) => {
+    if (typeof p !== 'number' || !Number.isFinite(p) || p < 0) {
+      throw new TopsisInputError(`Peso inválido no critério ${j + 1}: deve ser um número >= 0.`);
+    }
+  });
+  const soma = pesos.reduce((s, p) => s + p, 0);
+  if (soma <= 0) throw new TopsisInputError('A soma dos pesos deve ser maior que zero.');
+  return pesos.map((p) => p / soma);
+}
+
+/**
+ * Separa os municípios aptos (com valor para TODOS os critérios) dos excluídos
+ * e monta a matriz de decisão na ordem dos critérios.
+ *
+ * @param {{id:number, nome:string, uf?:string, valores:Object}[]} municipios
+ * @param {{id:number, nome:string}[]} criterios
+ */
+function montarMatrizMunicipios(municipios, criterios) {
+  const aptos = [];
+  const excluidos = [];
+
+  for (const m of municipios) {
+    const faltando = criterios.filter((c) => {
+      const v = m.valores?.[c.id];
+      return v == null || !Number.isFinite(Number(v));
+    });
+    if (faltando.length) {
+      excluidos.push({
+        id: m.id,
+        nome: m.nome,
+        uf: m.uf,
+        motivo: `Sem dados para: ${faltando.map((c) => c.nome).join(', ')}.`,
+      });
+    } else {
+      aptos.push(m);
+    }
+  }
+
+  const matriz = aptos.map((m) => criterios.map((c) => Number(m.valores[c.id])));
+  return { aptos, excluidos, matriz };
+}
+
+/**
  * @param {number[][]} matriz  linhas = alternativas, colunas = critérios
  * @param {number[]}   pesos   um peso por critério; deve somar 1
  * @param {('beneficio'|'custo')[]} tipos  um tipo por critério
@@ -61,11 +134,10 @@ function validarEntrada(matriz, pesos, tipos) {
  *   ranking: {indice:number, ci:number, distanciaPositiva:number, distanciaNegativa:number, posicao:number}[],
  *   idealPositivo: number[],
  *   idealNegativo: number[]
- * }}  ranking ordenado do melhor (posicao 1) ao pior; `indice` é a linha original da matriz.
+ * }}  ranking ordenado do maior Ci (posicao 1 = mais vulnerável) ao menor; `indice` é a linha original da matriz.
  */
 function topsis(matriz, pesos, tipos) {
   validarEntrada(matriz, pesos, tipos);
-  const nAlt = matriz.length;
   const nCri = pesos.length;
 
   // Passo 1: normalização vetorial  r_ij = x_ij / sqrt(Σ x_ij²)
@@ -110,4 +182,12 @@ function topsis(matriz, pesos, tipos) {
   return { ranking, idealPositivo, idealNegativo };
 }
 
-module.exports = { topsis, TopsisInputError, TOLERANCIA_PESOS };
+module.exports = {
+  topsis,
+  normalizarPesos,
+  montarMatrizMunicipios,
+  faixaVulnerabilidade,
+  FAIXAS,
+  TopsisInputError,
+  TOLERANCIA_PESOS,
+};

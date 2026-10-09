@@ -1,33 +1,37 @@
 const prisma = require('../config/database');
+const { INCLUDE_VALORES, mapearMunicipio } = require('./municipio.mapper');
+const importacao = require('./importacao.service');
 
 async function listar() {
   const municipios = await prisma.municipio.findMany({
-    orderBy: { nome: 'asc' },
-    include: { matrizDecisao: { select: { criterioId: true, valor: true } } },
+    orderBy: [{ uf: 'asc' }, { nome: 'asc' }],
+    include: INCLUDE_VALORES,
   });
-
-  return municipios.map(({ matrizDecisao, ...m }) => ({
-    ...m,
-    valores: Object.fromEntries(
-      matrizDecisao.filter((md) => md.criterioId).map((md) => [md.criterioId, Number(md.valor)]),
-    ),
-  }));
+  return municipios.map(mapearMunicipio);
 }
 
 async function buscarPorId(id) {
-  return prisma.municipio.findUnique({ where: { id } });
+  const municipio = await prisma.municipio.findUnique({ where: { id }, include: INCLUDE_VALORES });
+  return municipio ? mapearMunicipio(municipio) : null;
 }
 
-async function criar(dados) {
-  return prisma.municipio.create({ data: dados });
+// O cadastro sempre passa pelo IBGE + ANEEL: nome, UF, população, PIB, geração renovável e coordenadas.
+async function criar({ codigoIbge }) {
+  return importacao.cadastrarMunicipio({ codigoIbge });
 }
 
+// Edição manual de campos que as APIs não cobrem (ou para corrigir coordenadas).
 async function atualizar(id, dados) {
-  return prisma.municipio.update({ where: { id }, data: dados });
+  await prisma.municipio.update({ where: { id }, data: dados });
+  return buscarPorId(id);
+}
+
+async function atualizarDados(id, opcoes) {
+  return importacao.atualizarDadosMunicipio(id, opcoes);
 }
 
 async function remover(id) {
   return prisma.municipio.delete({ where: { id } });
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar, remover };
+module.exports = { listar, buscarPorId, criar, atualizar, atualizarDados, remover };

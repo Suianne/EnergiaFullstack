@@ -1,10 +1,15 @@
 {
   "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.1.0",
+  "description": "API da Plataforma de Energia Renovável (TOPSIS)",
+  "main": "src/server.js",
   "scripts": {
-    "test": "node --test",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "db:migrate": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:generate": "prisma generate",
     "vercel-build": "prisma migrate deploy && prisma generate"
   },
   "keywords": [],

@@ -1,8 +1,6 @@
 const authService = require('../services/auth.service');
 const { ErroRequisicao } = require('../middleware/errorHandler');
 
-const PERFIS_VALIDOS = ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'];
-
 function validarRegistro(body) {
   const { nome, email, senha, perfil } = body ?? {};
 
@@ -15,8 +13,8 @@ function validarRegistro(body) {
   if (!senha || typeof senha !== 'string' || senha.length < 6) {
     throw new ErroRequisicao('"senha" deve ter no mínimo 6 caracteres.');
   }
-  if (perfil && !PERFIS_VALIDOS.includes(perfil)) {
-    throw new ErroRequisicao(`"perfil" deve ser: ${PERFIS_VALIDOS.join(', ')}.`);
+  if (perfil && !authService.PERFIS.includes(perfil)) {
+    throw new ErroRequisicao(`"perfil" deve ser: ${authService.PERFIS.join(', ')}.`);
   }
 }
 
@@ -31,21 +29,21 @@ function validarLogin(body) {
   }
 }
 
+function dadosDeRegistro(body) {
+  return {
+    nome: body.nome.trim(),
+    email: body.email.trim().toLowerCase(),
+    senha: body.senha,
+    perfil: body.perfil || undefined,
+  };
+}
+
+// Cadastro público (tela "Criar conta"). Perfis permitidos: GESTOR ou PESQUISADOR.
+// O primeiro usuário do sistema vira ADMINISTRADOR automaticamente.
 async function registrar(req, res, next) {
   try {
     validarRegistro(req.body);
-
-    const resultado = await authService.registrar({
-      nome: req.body.nome.trim(),
-      email: req.body.email.trim().toLowerCase(),
-      senha: req.body.senha,
-      perfil: req.body.perfil || 'PESQUISADOR',
-    });
-
-    if (resultado.erro) {
-      return res.status(409).json({ erro: resultado.erro });
-    }
-
+    const resultado = await authService.registrar(dadosDeRegistro(req.body));
     res.status(201).json(resultado);
   } catch (err) {
     next(err);
@@ -55,20 +53,23 @@ async function registrar(req, res, next) {
 async function login(req, res, next) {
   try {
     validarLogin(req.body);
-
     const resultado = await authService.login({
       email: req.body.email.trim().toLowerCase(),
       senha: req.body.senha,
     });
-
-    if (resultado.erro) {
-      return res.status(401).json({ erro: resultado.erro });
-    }
-
     res.json(resultado);
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { registrar, login };
+// Usuário logado (com token renovado, caso o perfil tenha mudado)
+async function me(req, res, next) {
+  try {
+    res.json(await authService.usuarioAtual(req.usuario.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { registrar, login, me, validarRegistro, dadosDeRegistro };

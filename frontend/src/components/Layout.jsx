@@ -1,12 +1,16 @@
-import { NavLink, Outlet } from "react-router-dom"
-import { useAuth } from "../hooks/useAuth.jsx"
+import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth.jsx'
+import { rotuloPerfil } from '../utils/perfis.js'
+
+const TODOS = ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR']
 
 const todosLinks = [
-  { to: '/',              txt: 'Dashboard',           perfis: ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'] },
-  { to: '/configuracao',  txt: 'Configuração TOPSIS', perfis: ['ADMINISTRADOR', 'PESQUISADOR'] },
-  { to: '/resultado',     txt: 'Resultado',           perfis: ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'] },
-  { to: '/municipios',    txt: 'Municípios',          perfis: ['ADMINISTRADOR'] },
-  { to: '/mapa',          txt: 'Mapa',                perfis: ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'] },
+  { to: '/',             txt: 'Dashboard',           perfis: TODOS },
+  { to: '/configuracao', txt: 'Configuração TOPSIS', perfis: ['ADMINISTRADOR', 'PESQUISADOR'] },
+  { to: '/resultado',    txt: 'Ranking',             perfis: TODOS },
+  { to: '/mapa',         txt: 'Mapa',                perfis: TODOS },
+  { to: '/municipios',   txt: 'Municípios',          perfis: ['ADMINISTRADOR'] },
+  { to: '/usuarios',     txt: 'Usuários',            perfis: ['ADMINISTRADOR'] },
 ]
 
 export default function Layout() {
@@ -24,7 +28,7 @@ export default function Layout() {
         </nav>
         <div className="side-footer">
           <span className="side-user">{usuario?.nome}</span>
-          <span className="side-perfil">{usuario?.perfil}</span>
+          <span className="side-perfil">{rotuloPerfil(usuario?.perfil)}</span>
           <button className="btn-logout" onClick={logout}>Sair</button>
         </div>
       </aside>

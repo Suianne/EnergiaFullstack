@@ -13,12 +13,12 @@ enum Perfil {
 }
 
 model Usuario {
-  id         Int         @id @default(autoincrement())
-  nome       String      @db.VarChar(150)
-  email      String      @unique @db.VarChar(200)
-  senha      String      @db.VarChar(255)
-  perfil     Perfil      @default(PESQUISADOR)
-  createdAt  DateTime    @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  nome      String   @db.VarChar(150)
+  email     String   @unique @db.VarChar(200)
+  senha     String   @db.VarChar(255)
+  perfil    Perfil   @default(PESQUISADOR)
+  createdAt DateTime @default(now()) @map("created_at")
 
   simulacoes Simulacao[]
 
@@ -26,73 +26,81 @@ model Usuario {
 }
 
 model Municipio {
-  id                  Int                 @id @default(autoincrement())
-  nome                String              @db.VarChar(200)
-  codigoIbge          String?             @unique @map("codigo_ibge") @db.VarChar(10)
-  uf                  String              @db.Char(2)
-  populacao           Int?
-  idh                 Decimal?            @db.Decimal(4, 3)
-  latitude            Decimal?            @db.Decimal(10, 7)
-  longitude           Decimal?            @db.Decimal(10, 7)
-  createdAt           DateTime?           @default(now()) @map("created_at")
+  id                 Int       @id @default(autoincrement())
+  nome               String    @db.VarChar(200)
+  codigoIbge         String    @unique @map("codigo_ibge") @db.VarChar(10)
+  uf                 String    @db.Char(2)
+  populacao          Int?
+  idh                Decimal?  @db.Decimal(4, 3)
+  latitude           Decimal?  @db.Decimal(10, 7)
+  longitude          Decimal?  @db.Decimal(10, 7)
+  /// null = ANEEL ainda não consultada; false = consultada e sem usina renovável em operação; true = possui geração renovável
+  geracaoRenovavel   Boolean?  @map("geracao_renovavel")
+  dadosAtualizadosEm DateTime? @map("dados_atualizados_em")
+  createdAt          DateTime? @default(now()) @map("created_at")
 
-  matrizDecisao       MatrizDecisao[]
-  resultadosRanking   ResultadoRanking[]
+  matrizDecisao     MatrizDecisao[]
+  resultadosRanking ResultadoRanking[]
 
+  @@unique([uf, nome])
   @@map("municipios")
 }
 
 model Criterio {
-  id                  Int                 @id @default(autoincrement())
-  nome                String              @db.VarChar(150)
-  descricao           String?
-  tipo                String?             @db.VarChar(10)
-  peso                Decimal?            @default(0.0) @db.Decimal(5, 4)
-  unidade             String?             @db.VarChar(50)
+  id        Int      @id @default(autoincrement())
+  /// Identificador estável dos critérios padrão (populacao, pib_per_capita, potencia_renovavel, usinas_renovaveis)
+  chave     String?  @unique @db.VarChar(50)
+  nome      String   @db.VarChar(150)
+  descricao String?
+  tipo      String?  @db.VarChar(10)
+  peso      Decimal? @default(0.0) @db.Decimal(5, 4)
+  unidade   String?  @db.VarChar(50)
+  fonte     String?  @db.VarChar(50)
 
-  matrizDecisao       MatrizDecisao[]
+  matrizDecisao MatrizDecisao[]
 
   @@map("criterios")
 }
 
 model MatrizDecisao {
-  id                  Int                 @id @default(autoincrement())
-  municipioId         Int?                @map("municipio_id")
-  criterioId          Int?                @map("criterio_id")
-  valor               Decimal             @db.Decimal(15, 4)
-  anoReferencia       Int?                @map("ano_referencia")
+  id            Int     @id @default(autoincrement())
+  municipioId   Int     @map("municipio_id")
+  criterioId    Int     @map("criterio_id")
+  valor         Decimal @db.Decimal(15, 4)
+  anoReferencia Int     @map("ano_referencia")
 
-  municipio            Municipio?         @relation(fields: [municipioId], references: [id])
-  criterio             Criterio?          @relation(fields: [criterioId], references: [id])
+  municipio Municipio @relation(fields: [municipioId], references: [id], onDelete: Cascade)
+  criterio  Criterio  @relation(fields: [criterioId], references: [id], onDelete: Cascade)
 
   @@unique([municipioId, criterioId, anoReferencia])
   @@map("matriz_decisao")
 }
 
 model Simulacao {
-  id                  Int                 @id @default(autoincrement())
-  usuarioId           Int?                @map("usuario_id")
-  dataExecucao        DateTime?           @default(now()) @map("data_execucao")
-  parametros          Json?
-  status              String?             @default("concluida") @db.VarChar(20)
+  id           Int       @id @default(autoincrement())
+  usuarioId    Int?      @map("usuario_id")
+  dataExecucao DateTime? @default(now()) @map("data_execucao")
+  parametros   Json?
+  status       String?   @default("concluida") @db.VarChar(20)
 
-  usuario             Usuario?           @relation(fields: [usuarioId], references: [id])
-  resultadosRanking   ResultadoRanking[]
+  usuario           Usuario?           @relation(fields: [usuarioId], references: [id])
+  resultadosRanking ResultadoRanking[]
 
   @@map("simulacoes")
 }
 
 model ResultadoRanking {
-  id                  Int                 @id @default(autoincrement())
-  simulacaoId         Int?                @map("simulacao_id")
-  municipioId         Int?                @map("municipio_id")
-  coeficienteCi       Decimal?            @map("coeficiente_ci") @db.Decimal(10, 8)
-  distanciaPositiva   Decimal?            @map("distancia_positiva") @db.Decimal(10, 8)
-  distanciaNegativa   Decimal?            @map("distancia_negativa") @db.Decimal(10, 8)
-  posicao             Int?
+  id                Int      @id @default(autoincrement())
+  simulacaoId       Int      @map("simulacao_id")
+  municipioId       Int?     @map("municipio_id")
+  coeficienteCi     Decimal? @map("coeficiente_ci") @db.Decimal(10, 8)
+  distanciaPositiva Decimal? @map("distancia_positiva") @db.Decimal(10, 8)
+  distanciaNegativa Decimal? @map("distancia_negativa") @db.Decimal(10, 8)
+  posicao           Int?
 
-  simulacao           Simulacao?          @relation(fields: [simulacaoId], references: [id])
-  municipio           Municipio?          @relation(fields: [municipioId], references: [id])
+  simulacao Simulacao  @relation(fields: [simulacaoId], references: [id], onDelete: Cascade)
+  /// Município apagado não some das simulações antigas: o nome fica em parametros.rankingAlternativas
+  municipio Municipio? @relation(fields: [municipioId], references: [id], onDelete: SetNull)
 
   @@map("resultados_ranking")
 }

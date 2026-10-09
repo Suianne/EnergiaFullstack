@@ -1,10 +1,12 @@
 const { Router } = require('express');
 const controller = require('../controllers/simulacao.controller');
-const { autenticar } = require('../middleware/auth');
+const { protegido } = require('../middleware/usuario');
 
 const router = Router();
 
-router.get('/', autenticar, controller.listar);
-router.get('/:id', autenticar, controller.buscarPorId);
+router.use(protegido);
+
+router.get('/', controller.listar);
+router.get('/:id', controller.buscarPorId);
 
 module.exports = router;

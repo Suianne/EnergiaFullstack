@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Field from '../components/Field.jsx'
 import Button from '../components/Button.jsx'
+import { useAuth } from '../hooks/useAuth.jsx'
+import { login as loginApi } from '../services/api.js'
 
-export default function Login({ onLogin }) {
+export default function Login() {
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
@@ -19,24 +23,10 @@ export default function Login({ onLogin }) {
 
     setCarregando(true)
     try {
-      const res = await fetch(
-        (import.meta.env.VITE_API_URL || 'http://localhost:3001/api') + '/auth/login',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
-        },
-      )
-      const dados = await res.json()
-
-      if (!res.ok) {
-        setErro(dados.erro || 'Erro ao fazer login.')
-        return
-      }
-
-      onLogin(dados.token, dados.usuario)
-    } catch {
-      setErro('Não foi possível conectar ao servidor.')
+      const dados = await loginApi(email.trim().toLowerCase(), senha)
+      login(dados.token, dados.usuario)
+    } catch (err) {
+      setErro(err.message || 'Erro ao fazer login.')
     } finally {
       setCarregando(false)
     }
@@ -55,6 +45,7 @@ export default function Login({ onLogin }) {
           <Field
             rotulo="Email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="seu@email.com"
@@ -62,6 +53,7 @@ export default function Login({ onLogin }) {
           <Field
             rotulo="Senha"
             type="password"
+            autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             placeholder="Sua senha"
@@ -73,6 +65,10 @@ export default function Login({ onLogin }) {
             {carregando ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
+
+        <p className="login-footer">
+          Ainda não tem conta? <Link to="/registro">Criar conta</Link>
+        </p>
       </div>
     </div>
   )

@@ -1,13 +1,17 @@
 const { Router } = require('express');
 const controller = require('../controllers/municipio.controller');
-const { autenticar, autorizar } = require('../middleware/auth');
+const { autorizar } = require('../middleware/auth');
+const { protegido } = require('../middleware/usuario');
 
 const router = Router();
 
-router.get('/', autenticar, controller.listar);
-router.get('/:id', autenticar, controller.buscarPorId);
-router.post('/', autenticar, autorizar('ADMINISTRADOR'), controller.criar);
-router.put('/:id', autenticar, autorizar('ADMINISTRADOR'), controller.atualizar);
-router.delete('/:id', autenticar, autorizar('ADMINISTRADOR'), controller.remover);
+router.use(protegido);
+
+router.get('/', controller.listar);
+router.get('/:id', controller.buscarPorId);
+router.post('/', autorizar('ADMINISTRADOR'), controller.criar);
+router.put('/:id', autorizar('ADMINISTRADOR'), controller.atualizar);
+router.post('/:id/atualizar-dados', autorizar('ADMINISTRADOR'), controller.atualizarDados);
+router.delete('/:id', autorizar('ADMINISTRADOR'), controller.remover);
 
 module.exports = router;

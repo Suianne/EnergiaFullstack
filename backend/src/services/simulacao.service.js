@@ -3,7 +3,10 @@ const prisma = require('../config/database');
 async function listar() {
   return prisma.simulacao.findMany({
     orderBy: { dataExecucao: 'desc' },
-    include: { usuario: { select: { id: true, nome: true, email: true } } },
+    include: {
+      usuario: { select: { id: true, nome: true, email: true } },
+      _count: { select: { resultadosRanking: true } },
+    },
   });
 }
 

@@ -481,3 +481,162 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
+
+/* =========================
+   COMPLEMENTOS
+========================= */
+
+.mt {
+  margin-top: 1rem;
+}
+
+.ajuda {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge.ok {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.badge.alerta {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge.neutro {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.alerta {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.alerta.ok {
+  background: var(--primary-light);
+  border-color: #b7dcc5;
+  color: var(--primary-dark);
+}
+
+.alerta.erro {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.btn.perigo {
+  background: var(--alta);
+  color: #ffffff;
+}
+
+.perigo-zona {
+  border-color: #fca5a5;
+}
+
+.lista-simples {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.lista-simples li {
+  margin-bottom: 0.25rem;
+}
+
+.painel-perfil {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+}
+
+.previa {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+table.compacta th,
+table.compacta td {
+  padding: 0.5rem 0.6rem;
+  font-size: 0.875rem;
+}
+
+select[size] {
+  padding: 0.35rem;
+}
+
+select[size] option {
+  padding: 0.3rem 0.5rem;
+}
+
+.perfis {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.perfis legend {
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0 0.25rem;
+}
+
+.perfil-opcao {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.perfil-opcao.ativo {
+  background: var(--primary-light);
+  border-color: #b7dcc5;
+}
+
+.perfil-opcao input {
+  width: auto;
+  margin-top: 0.25rem;
+}
+
+.perfil-opcao span {
+  display: flex;
+  flex-direction: column;
+}
+
+.perfil-opcao small {
+  color: var(--muted);
+}
+
+.login-footer {
+  margin-top: 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.login-card .ajuda {
+  margin: 0;
+}

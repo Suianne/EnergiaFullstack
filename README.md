@@ -16,7 +16,8 @@ Plataforma computacional para mensurar indicadores multicritério de vulnerabili
 | Banco de Dados | PostgreSQL 16 (Neon) |
 | ORM | Prisma 7 |
 | Autenticação | JWT + bcrypt |
-| Fontes de dados | API IBGE (população, PIB) + ANEEL/SIGA (geração renovável) |
+| Fontes de dados | API IBGE (municípios, população, PIB, malhas) + ANEEL/SIGA (usinas renováveis) |
+| Relatórios | PDF (pdfkit) e CSV |
 | DevOps | Docker + Docker Compose |
 | Deploy | Vercel |
 
@@ -26,28 +27,27 @@ Plataforma computacional para mensurar indicadores multicritério de vulnerabili
 EnergiaFullstack/
 ├── frontend/                  # Aplicação React (SPA)
 │   ├── src/
-│   │   ├── components/        # Componentes reutilizáveis
-│   │   ├── hooks/             # useApp (dados), useAuth (autenticação)
-│   │   ├── pages/             # Login, Dashboard, Cadastro, Topsis, Resultado, Mapa
-│   │   ├── services/          # Integração com API
+│   │   ├── components/        # Layout, MapaCalor, Card, Field, Button, Faixa, KpiCard
+│   │   ├── hooks/             # useApp (dados + ranking ao vivo), useAuth (sessão e perfil)
+│   │   ├── pages/             # Login, Registro, Dashboard, Topsis, Resultado, Cadastro, Usuarios, Mapa
+│   │   ├── services/          # Integração com a API
 │   │   ├── styles/            # CSS global
-│   │   └── utils/             # Motor TOPSIS no frontend
-│   ├── Dockerfile
+│   │   └── utils/             # Motor TOPSIS do cliente, perfis e UFs
 │   └── package.json
 ├── backend/                   # API REST (Node.js + Express)
 │   ├── src/
-│   │   ├── controllers/       # Auth, Municipio, Criterio, Topsis, Simulacao, Relatorio, Importacao
-│   │   ├── services/          # Lógica de negócio + Motor TOPSIS + Integração IBGE/ANEEL
-│   │   ├── routes/            # Definição de endpoints
-│   │   ├── middleware/        # Autenticação JWT + tratamento de erros
+│   │   ├── controllers/       # Auth, Usuario, Municipio, Criterio, Topsis, Simulacao, Relatorio, Importacao, Admin
+│   │   ├── services/          # Regras de negócio, motor TOPSIS, integração IBGE/ANEEL, PDF/CSV
+│   │   ├── routes/            # Endpoints
+│   │   ├── middleware/        # JWT, recarga do usuário, tratamento de erros
 │   │   └── config/            # Conexão Prisma/PostgreSQL
 │   ├── prisma/
-│   │   └── schema.prisma      # Modelagem do banco de dados
-│   ├── tests/                 # 33 testes automatizados
-│   ├── Dockerfile
+│   │   ├── schema.prisma      # Modelagem do banco
+│   │   └── migrations/        # Migrations (inclui o reset de dados)
+│   ├── tests/                 # 83 testes automatizados (sem banco)
 │   ├── vercel.json
 │   └── package.json
-├── docker-compose.yml         # Orquestração dos 3 containers
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -57,6 +57,7 @@ EnergiaFullstack/
 
 ```bash
 docker compose up --build
+docker compose exec backend npx prisma migrate deploy
 ```
 
 Acesse:
@@ -64,20 +65,14 @@ Acesse:
 - Backend: http://localhost:3001
 - Banco: PostgreSQL na porta 5432
 
-Após subir, rode a migration:
-
-```bash
-docker compose exec backend npx prisma migrate dev
-```
-
 ### Sem Docker
 
 ```bash
 # Backend
 cd backend
 npm install
-DATABASE_URL=postgresql://user:pass@localhost:5432/energia_db npx prisma migrate dev
-DATABASE_URL=postgresql://user:pass@localhost:5432/energia_db node src/server.js
+DATABASE_URL=postgresql://user:pass@localhost:5432/energia_db npm run db:migrate
+DATABASE_URL=postgresql://user:pass@localhost:5432/energia_db JWT_SECRET=troque-isto npm start
 
 # Frontend (em outro terminal)
 cd frontend
@@ -85,101 +80,148 @@ npm install
 npm run dev
 ```
 
-## Fluxo de Uso (Administrador)
+Variáveis do backend: `DATABASE_URL` (obrigatória), `JWT_SECRET`, `PORT`, `CORS_ORIGIN`.
+Variável do frontend: `VITE_API_URL` (padrão `http://localhost:3001/api`).
 
-1. **Registrar/Login** — criar conta com perfil ADMINISTRADOR
-2. **Importar municípios** — na página Cadastro, informar a UF e clicar "Importar municípios (IBGE)". Os municípios são buscados via API do IBGE e salvos no banco com código IBGE e população.
-3. **Popular critérios** — clicar "Popular critérios (IBGE + ANEEL)". O sistema cria 4 critérios padrão e busca dados reais:
-   - **População** (IBGE) — população estimada do município
-   - **PIB per capita** (IBGE) — riqueza econômica municipal
-   - **Potência instalada** (ANEEL/SIGA) — potência de geração renovável em operação (solar, eólica, PCH)
-   - **Usinas renováveis** (ANEEL/SIGA) — quantidade de usinas renováveis em operação
-4. **Configurar TOPSIS** — ajustar pesos e tipos (benefício/custo) de cada critério
-5. **Ver resultados** — Dashboard, Ranking e Mapa com dados reais
+## Perfis de Acesso e Cadastro
+
+| Perfil | Pode fazer |
+|---|---|
+| **ADMINISTRADOR** | Tudo: cadastro/importação de municípios (IBGE + ANEEL), critérios, usuários e níveis de acesso, TOPSIS, PDF/CSV, reset de dados |
+| **PESQUISADOR** | Configurar critérios e pesos, ver ranking, mapa e exportar CSV |
+| **GESTOR** (Gestor público) | Ver ranking, mapa e exportar o relatório em PDF |
+
+- Qualquer pessoa cria a própria conta em **Criar conta** escolhendo **Gestor público** ou **Pesquisador**.
+- O **primeiro usuário** cadastrado no sistema vira **ADMINISTRADOR** automaticamente.
+- O perfil ADMINISTRADOR só é concedido por outro administrador na tela **Usuários**, que também permite criar usuários, alterar perfis e remover contas (o sistema nunca fica sem administrador).
+- Mudanças de perfil valem imediatamente: o usuário é recarregado do banco a cada requisição.
+- Cada perfil vê um menu e um Dashboard diferentes.
+
+## Fluxo de Uso
+
+1. **Criar conta / Login.**
+2. **Municípios** (administrador):
+   - **Adicionar município**: escolha a UF → a lista de municípios do IBGE e o resumo de usinas renováveis da ANEEL são carregados → escolha o município (ou localize pelo CEP) → a prévia mostra se há geração renovável → **Adicionar**. O município é gravado já com população e PIB per capita (IBGE), potência e nº de usinas renováveis (ANEEL/SIGA) e coordenadas (malha do IBGE).
+   - **Importação em lote por UF**: importa todos os municípios do estado com os mesmos dados, em etapas.
+   - **Atualizar dados** reconsulta as fontes para um município ou para os pendentes de uma UF.
+3. **Configuração TOPSIS** (administrador/pesquisador): ajuste tipo e peso dos critérios e **salve** para que todos usem a mesma configuração.
+4. **Ranking**: tabela com Ci, faixa e flag de geração renovável, perfil do município, exportação **CSV** (todos) e **PDF** (administrador/gestor).
+5. **Mapa**: camada de calor por Ci ou por critério.
+
+## Semântica do TOPSIS
+
+- **Ci é um índice de vulnerabilidade energética (0 a 1): quanto maior, mais vulnerável o município.** Faixas: Alta (≥ 0,66), Média (≥ 0,33), Baixa.
+- Critério **benefício**: quanto maior o valor, mais vulnerável (ex.: população exposta).
+- Critério **custo**: quanto maior o valor, menos vulnerável (ex.: PIB per capita, potência renovável instalada, usinas renováveis em operação).
+- **Município sem geração renovável constatada pela ANEEL** recebe valor 0 nos critérios de geração (tipo custo) e, portanto, tende ao topo do ranking. A flag `geracaoRenovavel` guarda isso (`true`/`false`); `null` significa que a ANEEL não foi consultada (indisponível no momento) — nesse caso o município **não** é marcado como "sem geração".
+- **Município sem dado em algum critério fica fora do ranking** (lista "sem dados"): ausência de dado não é tratada como zero.
+- O motor do cliente (pré-visualização ao vivo) e o do servidor (simulações salvas e PDF) aplicam as mesmas regras.
+
+Critérios padrão (criados automaticamente, editáveis):
+
+| Chave | Critério | Tipo | Fonte |
+|---|---|---|---|
+| `populacao` | População | benefício | IBGE |
+| `pib_per_capita` | PIB per capita | custo | IBGE |
+| `potencia_renovavel` | Potência renovável instalada (kW) | custo | ANEEL/SIGA |
+| `usinas_renovaveis` | Usinas renováveis em operação | custo | ANEEL/SIGA |
 
 ## Fontes de Dados Externas
 
 | Fonte | API | Dados utilizados |
 |---|---|---|
-| **IBGE** | `servicodados.ibge.gov.br` | Municípios por UF, população estimada (pesquisa 6579), PIB per capita (pesquisa 38/indicador 47001) |
-| **ANEEL** | `dadosabertos.aneel.gov.br` (SIGA) | Usinas de geração em operação — potência fiscalizada e contagem por município, filtradas por fontes renováveis (UFV, EOL, PCH, CGH) |
+| **IBGE** | `servicodados.ibge.gov.br` | Municípios por UF, município por código, população estimada (pesquisa 6579), PIB per capita (pesquisa 38/indicador 47001), malha municipal (centroide para o mapa) |
+| **ANEEL** | `dadosabertos.aneel.gov.br` (SIGA) | Usinas **em operação** com origem renovável (solar, eólica, biomassa, undi-elétrica e hídrica PCH/CGH), agregadas por município; usina em vários municípios tem a potência rateada igualmente. Cache de 6 h por UF. |
+
+## Reset do Banco de Dados
+
+A migration `20261009120000_reset_dados_e_integridade` **apaga municípios, matriz de decisão, critérios, simulações e rankings** (havia cidades duplicadas) e **mantém os usuários**. Ela é aplicada automaticamente no deploy (`prisma migrate deploy`) e também:
+
+- torna `codigo_ibge` obrigatório e único e cria a unicidade `(uf, nome)`, impedindo novas duplicatas;
+- passa as exclusões para cascata (apagar município/critério remove seus valores);
+- adiciona `municipios.geracao_renovavel`, `municipios.dados_atualizados_em`, `criterios.chave` e `criterios.fonte`.
+
+Para resetar de novo mais tarde: tela **Municípios → Reset dos dados** (digite `RESETAR`) ou `POST /api/admin/reset-dados` com `{ "confirmacao": "RESETAR" }`. Em ambiente local, `npm run db:reset` recria o banco do zero.
 
 ## API — Endpoints
 
-### Autenticação (pública)
-| Método | Endpoint | Descrição |
-|---|---|---|
-| POST | `/api/auth/registrar` | Registrar novo usuário |
-| POST | `/api/auth/login` | Login (retorna token JWT) |
+### Autenticação
+| Método | Endpoint | Permissão | Descrição |
+|---|---|---|---|
+| POST | `/api/auth/registrar` | pública | Cria conta (GESTOR ou PESQUISADOR; 1º usuário vira ADMINISTRADOR). Devolve token |
+| POST | `/api/auth/login` | pública | Login (token JWT) |
+| GET | `/api/auth/me` | logado | Usuário atual com token renovado |
 
-### Municípios (autenticado)
+### Usuários
 | Método | Endpoint | Permissão |
 |---|---|---|
-| GET | `/api/municipios` | Todos |
-| GET | `/api/municipios/:id` | Todos |
-| POST | `/api/municipios` | ADMINISTRADOR |
-| PUT | `/api/municipios/:id` | ADMINISTRADOR |
-| DELETE | `/api/municipios/:id` | ADMINISTRADOR |
+| GET | `/api/usuarios` | ADMINISTRADOR |
+| POST | `/api/usuarios` | ADMINISTRADOR (qualquer perfil) |
+| PUT | `/api/usuarios/:id` | ADMINISTRADOR (`{ perfil }`) |
+| DELETE | `/api/usuarios/:id` | ADMINISTRADOR |
 
-### Critérios (autenticado)
+### Municípios
+| Método | Endpoint | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/api/municipios` | Todos | Lista com `valores` (por critério), `geracaoRenovavel`, coordenadas |
+| GET | `/api/municipios/:id` | Todos | |
+| POST | `/api/municipios` | ADMINISTRADOR | `{ codigoIbge }` → busca IBGE + ANEEL + coordenadas e grava a matriz |
+| PUT | `/api/municipios/:id` | ADMINISTRADOR | Edição manual (`nome`, `populacao`, `idh`, `latitude`, `longitude`) |
+| POST | `/api/municipios/:id/atualizar-dados` | ADMINISTRADOR | Reconsulta IBGE + ANEEL (`?forcarAneel=1` ignora o cache) |
+| DELETE | `/api/municipios/:id` | ADMINISTRADOR | |
+
+### Fontes externas e importação
+| Método | Endpoint | Permissão | Descrição |
+|---|---|---|---|
+| GET | `/api/importacao/ibge/municipios/:uf` | Todos | Municípios da UF (IBGE) |
+| GET | `/api/importacao/aneel/:uf` | Todos | Usinas renováveis em operação agregadas por município |
+| POST | `/api/importacao/ibge/municipios/:uf?limite=10` | ADMINISTRADOR | Importa municípios ainda não cadastrados, já com dados (incremental) |
+| POST | `/api/importacao/atualizar-dados/:uf?limite=10` | ADMINISTRADOR | Reprocessa municípios sem dados (incremental) |
+
+### Critérios
 | Método | Endpoint | Permissão |
 |---|---|---|
 | GET | `/api/criterios` | Todos |
-| POST | `/api/criterios` | ADMINISTRADOR, PESQUISADOR |
-| PUT | `/api/criterios/:id` | ADMINISTRADOR, PESQUISADOR |
-| DELETE | `/api/criterios/:id` | ADMINISTRADOR, PESQUISADOR |
+| POST / PUT / DELETE | `/api/criterios[/:id]` | ADMINISTRADOR, PESQUISADOR |
 
-### TOPSIS (autenticado)
-| Método | Endpoint | Permissão |
-|---|---|---|
-| POST | `/api/topsis/executar` | Todos |
+### TOPSIS e simulações
+| Método | Endpoint | Permissão | Descrição |
+|---|---|---|---|
+| POST | `/api/topsis/executar` | Todos | Matriz enviada no corpo (`alternativas`, `criterios`, `matriz`) |
+| POST | `/api/topsis/executar-banco` | Todos | Municípios e critérios do banco; `{ criterios: [{ id, peso, tipo }] }` opcional. Salva a simulação ligada aos municípios e devolve `ranking` e `excluidos` |
+| GET | `/api/simulacoes[/:id]` | Todos | |
 
-### Simulações (autenticado)
-| Método | Endpoint | Permissão |
-|---|---|---|
-| GET | `/api/simulacoes` | Todos |
-| GET | `/api/simulacoes/:id` | Todos |
-
-### Relatórios (autenticado)
+### Relatórios
 | Método | Endpoint | Permissão |
 |---|---|---|
 | POST | `/api/relatorios/csv` | Todos |
 | GET | `/api/relatorios/:id/pdf` | ADMINISTRADOR, GESTOR |
 
-### Importação e Dados Externos (autenticado)
+### Administração
 | Método | Endpoint | Permissão | Descrição |
 |---|---|---|---|
-| GET | `/api/importacao/ibge/municipios/:uf` | Todos | Consultar municípios do IBGE |
-| POST | `/api/importacao/ibge/municipios/:uf` | ADMINISTRADOR | Importar municípios da UF para o banco |
-| POST | `/api/importacao/popular-dados/:uf` | ADMINISTRADOR | Popular MatrizDecisao com dados IBGE + ANEEL |
-
-## Perfis de Acesso
-
-| Perfil | Pode fazer |
-|---|---|
-| **ADMINISTRADOR** | Acesso total — cadastro de municípios, critérios, importação IBGE/ANEEL, TOPSIS, relatórios |
-| **PESQUISADOR** | Configurar critérios, executar TOPSIS, ver resultados e mapa |
-| **GESTOR** | Executar TOPSIS, ver resultados, gerar relatórios PDF |
+| GET | `/api/admin/estatisticas` | ADMINISTRADOR | Contagens gerais |
+| POST | `/api/admin/reset-dados` | ADMINISTRADOR | `{ "confirmacao": "RESETAR" }` — zera dados, mantém usuários, recria critérios |
 
 ## Banco de Dados
 
-Tabelas: `usuarios`, `municipios`, `criterios`, `matriz_decisao`, `simulacoes`, `resultados_ranking`
+Tabelas: `usuarios`, `municipios`, `criterios`, `matriz_decisao`, `simulacoes`, `resultados_ranking`.
 
-O campo `codigo_ibge` na tabela `municipios` é a chave de ligação com as APIs externas (IBGE e ANEEL). A tabela `matriz_decisao` armazena os valores dos critérios por município, alimentados pelas APIs e consumidos pelo motor TOPSIS.
-
-O schema completo está em `backend/prisma/schema.prisma`.
+`municipios.codigo_ibge` (obrigatório e único) é a chave de ligação com o IBGE; a ANEEL é casada pelo nome do município normalizado (sem acentos) dentro da UF. `matriz_decisao` guarda os valores dos critérios por município e ano de referência, consumidos pelo motor TOPSIS. O schema completo está em `backend/prisma/schema.prisma`.
 
 ## Testes
 
 ```bash
 cd backend
-node --test tests/auth.test.js tests/topsis.test.js tests/validacoes.test.js
+npm test
 ```
 
-33 testes cobrindo:
-- Autenticação e controle de permissões (10 testes)
-- Motor TOPSIS — corretude matemática (9 testes)
-- Validações de entrada — municípios, critérios, auth, relatórios (14 testes)
+83 testes, sem necessidade de banco (Prisma é substituído por um stub):
+- rotas HTTP (autenticação obrigatória, TOPSIS, CSV, PDF e permissões);
+- motor TOPSIS (exemplo do roteiro, semântica de vulnerabilidade, exclusão de municípios sem dados);
+- integração ANEEL (classificação de fontes, usinas em vários municípios, normalização de nomes);
+- regras de usuários (primeiro administrador, cadastro público, proteções do último administrador);
+- validações de entrada.
 
 ## Equipe
 
