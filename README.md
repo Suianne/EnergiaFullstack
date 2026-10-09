@@ -7,6 +7,19 @@ Plataforma computacional para mensurar indicadores multicritério de vulnerabili
 - **Frontend:** https://frontend-iota-six-17.vercel.app
 - **Backend (API):** https://backend-six-alpha-58.vercel.app
 
+Os projetos da Vercel **não estão ligados ao repositório do GitHub**: um push na `main` não publica nada. Para publicar, use a CLI logada na conta dona dos projetos:
+
+```bash
+cd backend && vercel --prod     # linkar ao projeto backend-six-alpha-58
+cd ../frontend && vercel --prod # linkar ao projeto frontend-iota-six-17
+```
+
+Variáveis necessárias na Vercel: backend `DATABASE_URL`, `JWT_SECRET` (opcional `CORS_ORIGIN`); frontend `VITE_API_URL` apontando para a URL da API com o sufixo `/api`.
+
+Para publicar automaticamente a cada push, ligue cada projeto ao repositório `Suianne/EnergiaFullstack` em *Settings → Git* no painel da Vercel.
+
+> **Atenção:** o primeiro deploy do backend após 09/10/2026 aplica a migration de reset, que apaga municípios, critérios, matriz de decisão e simulações do banco (usuários são mantidos). Veja [Reset do Banco de Dados](#reset-do-banco-de-dados).
+
 ## Tecnologias
 
 | Camada | Tecnologia |
