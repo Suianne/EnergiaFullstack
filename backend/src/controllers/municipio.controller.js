@@ -1,4 +1,5 @@
 const service = require('../services/municipio.service');
+const importacaoService = require('../services/importacao.service');
 const { ErroRequisicao } = require('../middleware/errorHandler');
 
 function validarCampos(body) {
@@ -35,21 +36,17 @@ async function buscarPorId(req, res, next) {
   }
 }
 
+// Cadastro de município: o IBGE confirma código, nome e UF, e os dados do IBGE/ANEEL
+// são buscados na mesma operação. Se alguma fonte falhar, nada é gravado.
 async function criar(req, res, next) {
   try {
-    validarCampos(req.body);
+    const codigoIbge = String(req.body?.codigoIbge ?? '').trim();
+    if (!/^\d{7}$/.test(codigoIbge)) {
+      throw new ErroRequisicao('"codigoIbge" é obrigatório e deve ter 7 dígitos.');
+    }
 
-    const municipio = await service.criar({
-      nome: req.body.nome.trim(),
-      uf: req.body.uf.toUpperCase(),
-      codigoIbge: req.body.codigoIbge || null,
-      populacao: req.body.populacao ?? null,
-      idh: req.body.idh ?? null,
-      latitude: req.body.latitude ?? null,
-      longitude: req.body.longitude ?? null,
-    });
-
-    res.status(201).json(municipio);
+    const resultado = await importacaoService.cadastrarMunicipio(codigoIbge);
+    res.status(201).json(resultado);
   } catch (err) {
     next(err);
   }
@@ -63,7 +60,7 @@ async function atualizar(req, res, next) {
     const municipio = await service.atualizar(id, {
       nome: req.body.nome.trim(),
       uf: req.body.uf.toUpperCase(),
-      codigoIbge: req.body.codigoIbge || null,
+      codigoIbge: req.body.codigoIbge || undefined,
       populacao: req.body.populacao ?? null,
       idh: req.body.idh ?? null,
       latitude: req.body.latitude ?? null,

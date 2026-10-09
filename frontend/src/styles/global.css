@@ -481,3 +481,43 @@ tbody tr:hover {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
+/* =========================
+   CADASTRO DE USUÁRIO / NÍVEIS DE ACESSO
+========================= */
+
+.login-link {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.login-link a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sucesso {
+  color: var(--primary);
+  font-size: 0.875rem;
+}
+
+.aviso {
+  color: #b45309;
+  font-size: 0.875rem;
+}
+
+.nivel {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.tag.sem-geracao {
+  background: var(--alta);
+}
+
+.tag.com-geracao {
+  background: var(--baixa);
+}
+.tag.sem-geracao, .tag.com-geracao { white-space: nowrap; }

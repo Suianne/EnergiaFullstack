@@ -15,7 +15,7 @@ function validarRegistro(body) {
   if (!senha || typeof senha !== 'string' || senha.length < 6) {
     throw new ErroRequisicao('"senha" deve ter no mínimo 6 caracteres.');
   }
-  if (perfil && !PERFIS_VALIDOS.includes(perfil)) {
+  if (perfil !== undefined && !PERFIS_VALIDOS.includes(perfil)) {
     throw new ErroRequisicao(`"perfil" deve ser: ${PERFIS_VALIDOS.join(', ')}.`);
   }
 }
@@ -39,7 +39,8 @@ async function registrar(req, res, next) {
       nome: req.body.nome.trim(),
       email: req.body.email.trim().toLowerCase(),
       senha: req.body.senha,
-      perfil: req.body.perfil || 'PESQUISADOR',
+      perfil: req.body.perfil,
+      codigoAdmin: req.body.codigoAdmin,
     });
 
     if (resultado.erro) {
@@ -71,4 +72,12 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { registrar, login };
+async function infoRegistro(req, res, next) {
+  try {
+    res.json(await authService.infoRegistro());
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { registrar, login, infoRegistro };

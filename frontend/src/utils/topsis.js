@@ -2,9 +2,13 @@ export const COR = { alta: '#F87171', media: '#FBBF24', baixa: '#4ADE80', accent
 export const faixa = (ci) => ci >= 0.66 ? { nome: 'Alta', cor: COR.alta } : ci >= 0.33 ? { nome: 'Média', cor: COR.media } : { nome: 'Baixa', cor: COR.baixa }
 
 // TOPSIS: normalização vetorial -> ponderação -> ideal/anti-ideal -> Ci = d- / (d+ + d-)
-export function rank(items, crit) {
-  if (!items.length || !crit.length) return []
-  if (!items[0].valores) return items.map((m, i) => ({ ...m, ci: 0, pos: i + 1 }))
+// Maior Ci = maior vulnerabilidade. Município sem valor em algum critério (dados IBGE/ANEEL ausentes)
+// fica de fora: contar a falta como 0 distorceria o ranking.
+export function rank(todos, crit) {
+  if (!todos.length || !crit.length) return []
+  if (!todos[0].valores) return todos.map((m, i) => ({ ...m, ci: 0, pos: i + 1 }))
+  const items = todos.filter((m) => crit.every((c) => Number.isFinite(m.valores[c.id])))
+  if (!items.length) return []
   const soma = crit.reduce((s, c) => s + c.peso, 0) || 1
   const norma = crit.map((c) => Math.sqrt(items.reduce((s, m) => s + (m.valores[c.id] || 0) ** 2, 0)) || 1)
   const v = items.map((m) => crit.map((c, j) => ((m.valores[c.id] || 0) / norma[j]) * (c.peso / soma)))

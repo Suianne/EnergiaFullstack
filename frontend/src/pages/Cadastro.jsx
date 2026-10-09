@@ -1,27 +1,33 @@
 import { useState } from "react"
 import { useApp } from "../hooks/useApp.jsx"
-import { useAuth } from "../hooks/useAuth.jsx"
 import Card from '../components/Card.jsx'
 import Field from '../components/Field.jsx'
 import Button from '../components/Button.jsx'
 import { buscarCep, criarMunicipio, importarMunicipiosIBGE, popularDadosApis } from '../services/api.js'
 
-const vazio = { nome: '', uf: '', ibge: '', cep: '' }
+const UFS = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
+const vazio = { ibge: '', cep: '', nome: '', uf: '' }
+
+// Resumo legível do que veio da importação/atualização de um estado.
+function resumoLote(r) {
+  const partes = [r.mensagem]
+  if (r.semDadosIBGE) partes.push(`${r.semDadosIBGE} sem população/PIB no IBGE (ficam fora do ranking).`)
+  if (r.semGeracaoRenovavel) partes.push(`${r.semGeracaoRenovavel} sem geração renovável constatada pela ANEEL.`)
+  if (r.aneel?.nomesNaoCasados?.length) partes.push(`Nomes da ANEEL sem correspondência no IBGE: ${r.aneel.nomesNaoCasados.join(', ')}.`)
+  return partes.join(' ')
+}
 
 export default function Cadastro() {
   const { municipios, recarregar } = useApp()
-  const { usuario } = useAuth()
   const [f, setF] = useState(vazio)
   const [erros, setErros] = useState({})
   const [salvando, setSalvando] = useState(false)
+  const [msgManual, setMsgManual] = useState({ texto: '', aviso: false })
 
-  // Estado para importação IBGE + ANEEL
+  // Estado inteiro (IBGE + ANEEL)
   const [ufImport, setUfImport] = useState('')
-  const [importando, setImportando] = useState(false)
-  const [populando, setPopulando] = useState(false)
-  const [msgImport, setMsgImport] = useState('')
-
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const [ocupado, setOcupado] = useState('') // '', 'importar' ou 'atualizar'
+  const [msgImport, setMsgImport] = useState({ texto: '', erro: false })
 
   const cep = async (valor) => {
     const numero = valor.replace(/\D/g, '')
@@ -38,20 +44,19 @@ export default function Cadastro() {
   const salvar = async (e) => {
     e.preventDefault()
     const er = {}
-    if (f.nome.trim().length < 2) er.nome = 'Informe o nome'
     if (!/^\d{7}$/.test(f.ibge)) er.ibge = 'Código IBGE com 7 dígitos'
-    if (!/^[A-Za-z]{2}$/.test(f.uf)) er.uf = 'UF com 2 letras'
-    if (municipios.some((m) => m.codigoIbge === f.ibge)) er.ibge = 'Município já cadastrado'
+    else if (municipios.some((m) => m.codigoIbge === f.ibge)) er.ibge = 'Município já cadastrado'
     setErros(er)
+    setMsgManual({ texto: '', aviso: false })
     if (Object.keys(er).length) return
 
     setSalvando(true)
     try {
-      await criarMunicipio({
-        nome: f.nome.trim(),
-        uf: f.uf.toUpperCase(),
-        codigoIbge: f.ibge,
-      })
+      // O servidor confirma nome/UF no IBGE e busca IBGE + ANEEL na mesma operação.
+      const r = await criarMunicipio({ codigoIbge: f.ibge })
+      setMsgManual(r.aviso
+        ? { texto: r.aviso, aviso: true }
+        : { texto: `${r.municipio.nome}/${r.municipio.uf} cadastrado com dados do IBGE e da ANEEL${r.semGeracaoRenovavel ? ' (sem geração renovável constatada)' : ''}.`, aviso: false })
       setF(vazio)
       recarregar()
     } catch (err) {
@@ -61,98 +66,108 @@ export default function Cadastro() {
     }
   }
 
-  const handleImportarIBGE = async () => {
-    if (!/^[A-Za-z]{2}$/.test(ufImport)) return setMsgImport('Informe a UF com 2 letras.')
-    setImportando(true)
-    setMsgImport('')
+  const executar = (tipo, acao) => async () => {
+    if (!UFS.includes(ufImport)) return setMsgImport({ texto: 'Selecione o estado.', erro: true })
+    setOcupado(tipo)
+    setMsgImport({ texto: '', erro: false })
     try {
-      const r = await importarMunicipiosIBGE(ufImport.toUpperCase())
-      setMsgImport(`${r.importados} importados, ${r.ignorados} já existiam (total IBGE: ${r.total}).`)
+      const r = await acao(ufImport)
+      setMsgImport({ texto: resumoLote(r), erro: false })
       recarregar()
     } catch (err) {
-      setMsgImport(`Erro: ${err.message}`)
+      setMsgImport({ texto: `Erro: ${err.message}`, erro: true })
     } finally {
-      setImportando(false)
+      setOcupado('')
     }
   }
 
-  const handlePopularDados = async () => {
-    if (!/^[A-Za-z]{2}$/.test(ufImport)) return setMsgImport('Informe a UF com 2 letras.')
-    setPopulando(true)
-    setMsgImport('')
-    try {
-      const r = await popularDadosApis(ufImport.toUpperCase())
-      setMsgImport(r.mensagem)
-      recarregar()
-    } catch (err) {
-      setMsgImport(`Erro: ${err.message}`)
-    } finally {
-      setPopulando(false)
-    }
-  }
-
-  const isAdmin = usuario?.perfil === 'ADMINISTRADOR'
+  const comDados = municipios.filter((m) => m.dadosAtualizadosEm).length
 
   return (
     <>
       <header className="head">
         <div>
           <h1>Cadastro de municípios</h1>
-          <p>Busque por CEP ou informe o código IBGE</p>
+          <p>Todo município entra já com os dados do IBGE e da ANEEL</p>
         </div>
       </header>
 
-      {isAdmin && (
-        <Card titulo="Importação em lote (IBGE + ANEEL)">
-          <div className="form" style={{ gap: '0.75rem' }}>
-            <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
-              Importe municípios do IBGE e alimente os critérios TOPSIS com dados reais do IBGE (população, PIB) e da ANEEL (geração distribuída).
-            </p>
-            <div className="row" style={{ gap: '0.5rem', alignItems: 'end', flexWrap: 'wrap' }}>
-              <Field
-                rotulo="UF"
-                value={ufImport}
-                onChange={(e) => setUfImport(e.target.value)}
-                maxLength={2}
-                placeholder="BA"
-                style={{ maxWidth: 100 }}
-              />
-              <Button onClick={handleImportarIBGE} disabled={importando || populando}>
-                {importando ? 'Importando…' : '1. Importar municípios (IBGE)'}
-              </Button>
-              <Button variante="secundario" onClick={handlePopularDados} disabled={importando || populando}>
-                {populando ? 'Buscando dados…' : '2. Popular critérios (IBGE + ANEEL)'}
-              </Button>
+      <Card titulo="Importar estado (IBGE + ANEEL)">
+        <div className="form" style={{ gap: '0.75rem' }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>
+            Importa todos os municípios do estado e já busca população, PIB (IBGE) e geração renovável (ANEEL).
+            Se alguma fonte estiver fora do ar, nada é gravado.
+          </p>
+          <div className="row" style={{ gap: '0.5rem', alignItems: 'end' }}>
+            <div className="field" style={{ maxWidth: 120 }}>
+              <label htmlFor="uf-import">Estado</label>
+              <select id="uf-import" value={ufImport} onChange={(e) => setUfImport(e.target.value)}>
+                <option value="">UF</option>
+                {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
             </div>
-            {msgImport && <p style={{ color: 'var(--cta)', fontSize: '0.875rem' }}>{msgImport}</p>}
+            <Button onClick={executar('importar', importarMunicipiosIBGE)} disabled={!!ocupado}>
+              {ocupado === 'importar' ? 'Importando…' : 'Importar estado'}
+            </Button>
+            <Button variante="secundario" onClick={executar('atualizar', popularDadosApis)} disabled={!!ocupado}>
+              {ocupado === 'atualizar' ? 'Atualizando…' : 'Atualizar dados do estado'}
+            </Button>
           </div>
-        </Card>
-      )}
-
-      <Card titulo="Cadastro manual">
-        <form className="form" onSubmit={salvar} noValidate>
-          <Field
-            rotulo="CEP"
-            value={f.cep}
-            onChange={(e) => {
-              const valor = e.target.value
-              setF((atual) => ({ ...atual, cep: valor }))
-              cep(valor)
-            }}
-            erro={erros.cep}
-            placeholder="40020-000"
-          />
-          <Field rotulo="Município" value={f.nome} onChange={set('nome')} erro={erros.nome} />
-          <Field rotulo="UF" value={f.uf} onChange={set('uf')} erro={erros.uf} maxLength={2} />
-          <Field rotulo="Código IBGE" value={f.ibge} onChange={set('ibge')} erro={erros.ibge} inputMode="numeric" />
-          {erros.geral && <p style={{ color: 'var(--alta)', fontSize: '0.875rem' }}>{erros.geral}</p>}
-          <div style={{ alignSelf: 'end' }}>
-            <Button type="submit" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar município'}</Button>
-          </div>
-        </form>
+          {msgImport.texto && <p className={msgImport.erro ? 'erro' : 'sucesso'}>{msgImport.texto}</p>}
+        </div>
       </Card>
 
-      <p style={{ margin: '1rem 0', color: 'var(--muted)' }}>{municipios.length} municípios cadastrados</p>
+      <div style={{ marginTop: '1rem' }}>
+        <Card titulo="Cadastro manual">
+          <form className="form" onSubmit={salvar} noValidate>
+            <Field
+              rotulo="CEP (opcional, preenche o código IBGE)"
+              value={f.cep}
+              onChange={(e) => {
+                const valor = e.target.value
+                setF((atual) => ({ ...atual, cep: valor }))
+                cep(valor)
+              }}
+              erro={erros.cep}
+              placeholder="40020-000"
+            />
+            <Field
+              rotulo="Código IBGE"
+              value={f.ibge}
+              onChange={(e) => setF({ ...f, ibge: e.target.value })}
+              erro={erros.ibge}
+              inputMode="numeric"
+              maxLength={7}
+            />
+            {f.nome && <p className="nivel">CEP encontrado: {f.nome}/{f.uf}</p>}
+            {erros.geral && <p className="erro">{erros.geral}</p>}
+            {msgManual.texto && <p className={msgManual.aviso ? 'aviso' : 'sucesso'}>{msgManual.texto}</p>}
+            <div style={{ alignSelf: 'end' }}>
+              <Button type="submit" disabled={salvando}>{salvando ? 'Buscando dados…' : 'Salvar município'}</Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <Card titulo={`${municipios.length} municípios cadastrados (${comDados} com dados IBGE/ANEEL)`}>
+          <div className="tablewrap" style={{ maxHeight: 360, overflowY: 'auto' }}>
+            <table>
+              <thead><tr><th>Município</th><th>UF</th><th>Código IBGE</th><th>Geração renovável (ANEEL)</th></tr></thead>
+              <tbody>{municipios.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.nome}</td><td>{m.uf}</td><td>{m.codigoIbge}</td>
+                  <td>{!m.dadosAtualizadosEm
+                    ? <span style={{ color: 'var(--muted)' }}>Sem dados</span>
+                    : m.semGeracaoRenovavel
+                      ? <span className="tag sem-geracao">Sem geração constatada</span>
+                      : <span className="tag com-geracao">{m.usinasRenovaveis} usina(s)</span>}</td>
+                </tr>))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
     </>
   )
 }

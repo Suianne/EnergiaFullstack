@@ -28,13 +28,20 @@ model Usuario {
 model Municipio {
   id                  Int                 @id @default(autoincrement())
   nome                String              @db.VarChar(200)
-  codigoIbge          String?             @unique @map("codigo_ibge") @db.VarChar(10)
+  codigoIbge          String              @unique @map("codigo_ibge") @db.VarChar(10)
   uf                  String              @db.Char(2)
   populacao           Int?
   idh                 Decimal?            @db.Decimal(4, 3)
   latitude            Decimal?            @db.Decimal(10, 7)
   longitude           Decimal?            @db.Decimal(10, 7)
   createdAt           DateTime?           @default(now()) @map("created_at")
+
+  // Dados brutos (IBGE + ANEEL). `dadosAtualizadosEm` nulo = ainda não consultado.
+  // Potência 0 e usinas 0 com a data preenchida = a ANEEL foi consultada e NÃO constatou geração renovável.
+  pibPerCapita        Decimal?            @map("pib_per_capita") @db.Decimal(12, 2)
+  potenciaRenovavelKw Decimal?            @map("potencia_renovavel_kw") @db.Decimal(15, 3)
+  usinasRenovaveis    Int?                @map("usinas_renovaveis")
+  dadosAtualizadosEm  DateTime?           @map("dados_atualizados_em")
 
   matrizDecisao       MatrizDecisao[]
   resultadosRanking   ResultadoRanking[]
@@ -44,6 +51,7 @@ model Municipio {
 
 model Criterio {
   id                  Int                 @id @default(autoincrement())
+  codigo              String?             @unique @db.VarChar(40)
   nome                String              @db.VarChar(150)
   descricao           String?
   tipo                String?             @db.VarChar(10)

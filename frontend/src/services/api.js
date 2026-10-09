@@ -57,8 +57,29 @@ export function exportarPdf(simulacaoId) {
 }
 
 // Importação IBGE + ANEEL
+// Importar um estado já traz os dados do IBGE e da ANEEL; "atualizar" refaz só os dados.
 export const importarMunicipiosIBGE = (uf) => req(`/importacao/ibge/municipios/${uf}`, { method: 'POST' })
 export const popularDadosApis = (uf) => req(`/importacao/popular-dados/${uf}`, { method: 'POST' })
+
+// Usuários e níveis de acesso
+export const registrarUsuario = (d) => req('/auth/registrar', { method: 'POST', body: JSON.stringify(d) })
+export const listarUsuarios = () => req('/usuarios')
+export const alterarPerfilUsuario = (id, perfil) => req(`/usuarios/${id}/perfil`, { method: 'PATCH', body: JSON.stringify({ perfil }) })
+export const removerUsuario = (id) => req(`/usuarios/${id}`, { method: 'DELETE' })
+
+// PDF do ranking exibido na tela de Resultado
+export async function exportarRankingPdf(ranking, criterios) {
+  const r = await fetch(`${BASE}/relatorios/pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify({ ranking, criterios }),
+  })
+  if (!r.ok) {
+    const corpo = await r.json().catch(() => ({}))
+    throw new Error(corpo.erro || `Erro ${r.status}`)
+  }
+  return r.blob()
+}
 
 // CEP
 export async function buscarCep(cep) {

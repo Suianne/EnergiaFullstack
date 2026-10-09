@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Field from '../components/Field.jsx'
 import Button from '../components/Button.jsx'
 
@@ -73,6 +74,8 @@ export default function Login({ onLogin }) {
             {carregando ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
+
+        <p className="login-link">Não tem conta? <Link to="/registrar">Criar conta</Link></p>
       </div>
     </div>
   )

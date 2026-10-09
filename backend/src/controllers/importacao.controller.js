@@ -26,7 +26,7 @@ async function importarPorUF(req, res, next) {
 
     const resultado = await service.importarMunicipiosUF(uf.toUpperCase());
     res.json({
-      mensagem: `Importação concluída para ${uf.toUpperCase()}.`,
+      mensagem: `${uf.toUpperCase()}: ${resultado.importados} município(s) novo(s), ${resultado.completos} com dados IBGE + ANEEL prontos para o ranking.`,
       ...resultado,
     });
   } catch (err) {
@@ -42,10 +42,10 @@ async function popularDadosPorUF(req, res, next) {
       throw new ErroRequisicao('"uf" deve ter exatamente 2 caracteres.');
     }
 
-    const resultado = await service.popularDados(uf.toUpperCase());
+    const resultado = await service.atualizarDadosUF(uf.toUpperCase());
 
     res.json({
-      mensagem: `Dados completos para ${uf.toUpperCase()}: ${resultado.municipiosProcessados} municípios processados.`,
+      mensagem: `Dados atualizados para ${uf.toUpperCase()}: ${resultado.municipiosProcessados} municípios processados.`,
       ...resultado,
     });
   } catch (err) {

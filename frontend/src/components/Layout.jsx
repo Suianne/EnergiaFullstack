@@ -6,6 +6,7 @@ const todosLinks = [
   { to: '/configuracao',  txt: 'Configuração TOPSIS', perfis: ['ADMINISTRADOR', 'PESQUISADOR'] },
   { to: '/resultado',     txt: 'Resultado',           perfis: ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'] },
   { to: '/municipios',    txt: 'Municípios',          perfis: ['ADMINISTRADOR'] },
+  { to: '/usuarios',     txt: 'Usuários',            perfis: ['ADMINISTRADOR'] },
   { to: '/mapa',          txt: 'Mapa',                perfis: ['ADMINISTRADOR', 'PESQUISADOR', 'GESTOR'] },
 ]
 

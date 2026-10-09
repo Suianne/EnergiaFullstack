@@ -1,6 +1,8 @@
 /**
  * Motor TOPSIS
- * Convenção do projeto: quanto MAIOR o Ci, MENOS vulnerável é a alternativa.
+ * Ci mede a proximidade da solução ideal. Quem define o que é "ideal" é o tipo de cada critério:
+ * na plataforma, os critérios são orientados para que MAIOR Ci = MAIOR vulnerabilidade
+ * (ex.: geração renovável instalada é "custo": quanto menos geração, mais perto do ideal).
  */
 
 const TIPOS_VALIDOS = ['beneficio', 'custo'];
