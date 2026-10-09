@@ -35,7 +35,11 @@ Commit `a65fb3d` na `main` (autor: AngeloMeirelles).
 - Teste ponta a ponta de 26 passos contra as APIs reais do IBGE e da ANEEL em um PostgreSQL local descartável.
 - Build e lint do frontend.
 
+### Deploy
+- Publicado em 09/10/2026 na conta Vercel do time NOG (deploy do backend `dpl_79QVzE3swuTe3FWdnts9kDngpnJ7`). A migration de reset foi aplicada no Neon de produção pelo build; usuários mantidos.
+- Adicionado `frontend/vercel.json` com rewrite de SPA: antes, abrir ou recarregar rotas como `/registro` e `/resultado` dava 404.
+
 ### Pendências
-- **Deploy não realizado.** Os projetos da Vercel não estão ligados ao GitHub e a conta da Vercel logada na máquina de desenvolvimento não é a dona dos projetos. Publicar com `vercel --prod` em `backend/` e `frontend/` na conta correta (ver README, seção Deploy).
-- Teste manual no navegador após a publicação.
+- Teste manual no navegador em produção (cadastrar municípios novamente, pois o banco foi zerado).
+- Opcional: ligar os projetos da Vercel ao repositório para deploy automático a cada push.
 - Decidir se Pesquisador também deve exportar PDF (hoje: só Administrador e Gestor, como no desenho original).

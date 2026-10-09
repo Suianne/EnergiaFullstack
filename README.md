@@ -10,15 +10,17 @@ Plataforma computacional para mensurar indicadores multicritério de vulnerabili
 Os projetos da Vercel **não estão ligados ao repositório do GitHub**: um push na `main` não publica nada. Para publicar, use a CLI logada na conta dona dos projetos:
 
 ```bash
-cd backend && vercel --prod     # linkar ao projeto backend-six-alpha-58
-cd ../frontend && vercel --prod # linkar ao projeto frontend-iota-six-17
+cd backend && vercel --prod --scope nog4     # projeto "backend"  -> backend-six-alpha-58.vercel.app
+cd ../frontend && vercel --prod --scope nog4 # projeto "frontend" -> frontend-iota-six-17.vercel.app
 ```
 
 Variáveis necessárias na Vercel: backend `DATABASE_URL`, `JWT_SECRET` (opcional `CORS_ORIGIN`); frontend `VITE_API_URL` apontando para a URL da API com o sufixo `/api`.
 
 Para publicar automaticamente a cada push, ligue cada projeto ao repositório `Suianne/EnergiaFullstack` em *Settings → Git* no painel da Vercel.
 
-> **Atenção:** o primeiro deploy do backend após 09/10/2026 aplica a migration de reset, que apaga municípios, critérios, matriz de decisão e simulações do banco (usuários são mantidos). Veja [Reset do Banco de Dados](#reset-do-banco-de-dados).
+> Os projetos pertencem ao time **NOG** na Vercel. A migration de reset de 09/10/2026 já foi aplicada em produção; deploys seguintes não apagam dados.
+
+O `frontend/vercel.json` redireciona todas as rotas para `index.html` (SPA), para que links diretos como `/registro` funcionem.
 
 ## Tecnologias
 
