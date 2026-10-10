@@ -67,7 +67,7 @@ export default function Resultado() {
       <header className="head">
         <div>
           <h1>Ranking de vulnerabilidade</h1>
-          <p>Maior Ci = mais vulnerável. Selecione uma linha para ver o perfil do município</p>
+          <p>Maior Ci = menos vulnerável. Selecione uma linha para ver o perfil do município</p>
         </div>
         <div className="row">
           <Button variante="secundario" onClick={exportarCsv} disabled={!ranking.length}>Exportar CSV</Button>
